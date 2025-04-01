@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - build-old
 
 env:
   GH_TOKEN: ${{ secrets.GH_TOKEN }}
