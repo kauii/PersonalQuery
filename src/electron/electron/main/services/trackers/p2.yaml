@@ -1,0 +1,60 @@
+### TASK
+You are an expert software developer.
+Determine what the developer is trying to achieve based on the given context.
+
+### STEPS
+1. Let's think step by step.
+2. Explain your rationale, and ignore information that is not software development related.
+
+### RULES
+1. Formulate goal and summary as concise as possible from the developer's perspective.
+
+### OUTPUT
+Respond with a JSON object with the following format:
+- rationale: a short rationale for your prediction, e.g. why you think this is the goal
+- goal: a five word summary of the detected goal
+- summary: a summary of the context relevant for the detected goal
+- confidence: a number between 0 and 100 indicating your confidence of predicting the correct goal
+
+### CONTEXT
+```
+computer context:
+  architecture: x64
+  operating system: macOS 23.5.0
+ide context:
+  TODOs:
+    - 'src/electron/electron/main/services/trackers/ExperienceSamplingTracker.ts: // TODO: Implement logic to determine if we should sample'
+  all git diffs:
+    - |
+      diff --git a/src/electron/electron/main/services/trackers/ExperienceSamplingTracker.ts b/src/electron/electron/main/services/trackers/ExperienceSamplingTracker.ts
+      index f73adbf..c3aea12 100644
+      --- a/src/electron/electron/main/services/trackers/ExperienceSamplingTracker.ts
+      +++ b/src/electron/electron/main/services/trackers/ExperienceSamplingTracker.ts
+      @@ -110,6 +110,12 @@ export class ExperienceSamplingTracker implements Tracker {
+           await this.startExperienceSamplingJob();
+         }
+
+      +  private shouldSample(): boolean {
+      +    // TODO: Implement logic to determine if we should sample
+      +    // For now, we always sample
+      +    return true;
+      +  }
+      +
+         private getRandomNextInvocationDate(): Date {
+           const subtractOrAdd: 1 | -1 = Math.random() < 0.5 ? -1 : 1;
+           const randomization =
+    - ''
+  current branch: main
+  last commit message: Update README.md
+  open files:
+    - /Users/alex/code/PersonalAnalytics/benchmark.md (markdown)
+  project name: PersonalAnalytics
+```
+
+
+{
+ "rationale": "The developer is working on implementing a feature in the ExperienceSamplingTracker class to determine if user sampling should occur, which suggests they are aiming for more intelligent or adaptive sampling behavior.",
+ "goal": "Implement sample determination logic",
+ "summary": "Developer needs to implement logic within ExperienceSamplingTracker.ts to decide when to trigger experience sampling based on certain conditions.",
+ "confidence": 95
+}

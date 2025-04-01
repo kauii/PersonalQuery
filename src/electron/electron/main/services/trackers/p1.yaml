@@ -1,0 +1,96 @@
+### RULES
+1. Write the text from the perspective of a software developer asking a question on a Q&A forum.
+2. A question should be concrete rather than open-ended, and should not be asking for opinions.
+3. DO NOT refer to information from the INTENT and the CONTEXT without including it in the question.
+
+### TASK
+1. You are a helpful software developer assistant with 100 years of experience.
+2. You will generate one possible question a developer could want to ask in a Q&A forum.
+3. The intent of the developer helps you understand what type of question they might ask.
+4. As a first step, decide which information from the context is relevant to the question.
+5. Formulate the question, and add relevant information from the context to the question. Use markdown formatting for code snippets, URLs, and other technical details.
+6. Include information from the context if it makes the question more understandable for other developers.
+
+### OUTPUT
+Respond with an array of JSON objects with the following format:
+```
+{
+  "question": "The developer question",
+  "title": "A question summarizing the full length question in a few words, ending with '?'",
+  "usefulness": "a number between 0 and 100 indicating the closeness of the question to the intent",
+}
+```
+
+### INTENT
+```
+Implement sampling logic: Add 'shouldSample' method to determine if experience sampling should occur.
+```
+### CONTEXT
+```
+browser context:
+  visited websites:
+    - title: bartowski/Llama-3-8B-Instruct-Coder-v2-GGUF · Hugging Face
+      url: https://huggingface.co/bartowski/Llama-3-8B-Instruct-Coder-v2-GGUF
+    - title: >-
+        feat: version 3.0 by giladgd · Pull Request #105 ·
+        withcatai/node-llama-cpp
+      url: https://github.com/withcatai/node-llama-cpp/pull/105
+    - title: Models - Hugging Face
+      url: https://huggingface.co/models?search=llama-3
+    - title: LLM prompting guide
+      url: https://huggingface.co/docs/transformers/main/en/tasks/prompting
+    - title: Getting started | node-llama-cpp
+      url: https://withcatai.github.io/node-llama-cpp/guide/
+    - title: Models - Hugging Face
+      url: >-
+        https://huggingface.co/models?library=gguf&sort=trending&search=llama+3+instruct
+computer context:
+  architecture: x64
+  operating system: macOS 23.5.0
+ide context:
+  TODOs:
+    - >-
+      src/electron/electron/main/services/trackers/ExperienceSamplingTracker.ts:
+      // TODO: Implement logic to determine if we should sample
+  all git diffs:
+    - >
+      diff --git
+      a/src/electron/electron/main/services/trackers/ExperienceSamplingTracker.ts
+      b/src/electron/electron/main/services/trackers/ExperienceSamplingTracker.ts
+
+      index f73adbf..c3aea12 100644
+
+      ---
+      a/src/electron/electron/main/services/trackers/ExperienceSamplingTracker.ts
+
+      +++
+      b/src/electron/electron/main/services/trackers/ExperienceSamplingTracker.ts
+
+      @@ -110,6 +110,12 @@ export class ExperienceSamplingTracker implements
+      Tracker {
+           await this.startExperienceSamplingJob();
+         }
+
+      +  private shouldSample(): boolean {
+
+      +    // TODO: Implement logic to determine if we should sample
+
+      +    // For now, we always sample
+
+      +    return true;
+
+      +  }
+
+      +
+         private getRandomNextInvocationDate(): Date {
+           const subtractOrAdd: 1 | -1 = Math.random() < 0.5 ? -1 : 1;
+           const randomization =
+    - ''
+  current branch: main
+  last commit message: Update README.md
+  open files:
+    - /Users/alex/code/PersonalAnalytics/benchmark.md (markdown)
+    - Untitled-1 (plaintext)
+  project name: PersonalAnalytics
+```
+
