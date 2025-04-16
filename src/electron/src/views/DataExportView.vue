@@ -230,8 +230,8 @@ function revealItemInFolder(event: Event) {
                 <b class="dark:text-white">first review and later share your data</b>.
                 <span v-if="studyConfig.dataExportEncrypted">
                   The export that will be created with your permission in the next step will be
-                  encrypted and password-protected. </span
-                >
+                  encrypted and password-protected.
+                </span>
               </p>
               <p class="mb-4">
                 Below, you find additional information on the study and how the researchers ensure
@@ -241,7 +241,13 @@ function revealItemInFolder(event: Event) {
                 <tbody>
                   <tr>
                     <td>Contact:</td>
-                    <td>{{ studyInfo.contactName }} (<a :href="'mailto:' + studyInfo.contactEmail" target="_blank">{{ studyInfo.contactEmail }}</a>)</td>
+                    <td>
+                      {{ studyInfo.contactName }} (<a
+                        :href="'mailto:' + studyInfo.contactEmail"
+                        target="_blank"
+                        >{{ studyInfo.contactEmail }}</a
+                      >)
+                    </td>
                   </tr>
                   <tr>
                     <td>Study Website:</td>
@@ -300,10 +306,7 @@ function revealItemInFolder(event: Event) {
                     >{{ fileName }}</span
                   >).
                 </li>
-                <li>
-                  <a href="#" @click="openUploadUrl">Click here</a> to open the upload
-                  page.
-                </li>
+                <li><a href="#" @click="openUploadUrl">Click here</a> to open the upload page.</li>
                 <li>
                   Upload the file named
                   <span class="badge badge-neutral font-bold text-white">{{ fileName }}</span> using

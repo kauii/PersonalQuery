@@ -281,7 +281,11 @@ function startAllTrackers() {
             </p>
 
             <p>
-              Contact {{ studyInfo.contactName }} (<a :href="'mailto:' + studyInfo.contactEmail" target="_blank">{{ studyInfo.contactEmail }}</a>) in case of questions.
+              Contact {{ studyInfo.contactName }} (<a
+                :href="'mailto:' + studyInfo.contactEmail"
+                target="_blank"
+                >{{ studyInfo.contactEmail }}</a
+              >) in case of questions.
             </p>
           </article>
         </div>

@@ -19,8 +19,8 @@ import ExperienceSamplingDto from '../../shared/dto/ExperienceSamplingDto';
 import { is } from '../main/services/utils/helpers';
 import { JSDOM } from 'jsdom';
 import DOMPurify from 'dompurify';
-import { WorkScheduleService } from 'electron/main/services/WorkScheduleService'
-import { WorkHoursDto } from 'shared/dto/WorkHoursDto'
+import { WorkScheduleService } from 'electron/main/services/WorkScheduleService';
+import { WorkHoursDto } from 'shared/dto/WorkHoursDto';
 import path from 'path';
 
 const LOG = getMainLogger('IpcHandler');
@@ -129,7 +129,7 @@ export class IpcHandler {
   private closeDataExportWindow(): void {
     this.windowService.closeDataExportWindow();
   }
-  
+
   private async getWorkHours(): Promise<WorkHoursDto> {
     return this.workScheduleService.getWorkSchedule();
   }
@@ -208,7 +208,7 @@ export class IpcHandler {
   private async revealItemInFolder(path: string): Promise<void> {
     this.windowService.showItemInFolder(path);
   }
-  
+
   private async openUploadUrl(): Promise<void> {
     this.windowService.openExternal();
   }

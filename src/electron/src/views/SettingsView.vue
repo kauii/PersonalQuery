@@ -1,11 +1,8 @@
 <script setup lang="ts">
-
-import studyConfig from '../../shared/study.config'
+import studyConfig from '../../shared/study.config';
 
 const considerWorkHours = studyConfig.trackers.experienceSamplingTracker.enabledWorkHours;
-
 </script>
-
 
 <template>
   <div class="settings-container">
@@ -17,8 +14,7 @@ const considerWorkHours = studyConfig.trackers.experienceSamplingTracker.enabled
       </ul>
     </nav>
     <div class="content">
-      <router-view>
-      </router-view>
+      <router-view> </router-view>
     </div>
   </div>
 </template>

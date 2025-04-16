@@ -17,9 +17,7 @@ defineProps({
       <p>Here is a sample of your unmodified data:</p>
     </div>
     <div class="max-h-48 overflow-auto">
-      <table
-        class="table table-zebra table-pin-rows w-full overflow-auto text-xs"
-      >
+      <table class="table table-zebra table-pin-rows w-full overflow-auto text-xs">
         <thead class="border-b">
           <tr>
             <th>Question</th>

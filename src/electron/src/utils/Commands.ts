@@ -3,7 +3,7 @@ import { DataExportType } from '../../shared/DataExportType.enum';
 import UserInputDto from '../../shared/dto/UserInputDto';
 import WindowActivityDto from '../../shared/dto/WindowActivityDto';
 import ExperienceSamplingDto from '../../shared/dto/ExperienceSamplingDto';
-import { WorkHoursDto } from '../../shared/dto/WorkHoursDto'
+import { WorkHoursDto } from '../../shared/dto/WorkHoursDto';
 
 type Commands = {
   createExperienceSample: (
