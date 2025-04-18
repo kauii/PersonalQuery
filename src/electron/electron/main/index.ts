@@ -145,7 +145,7 @@ app.whenReady().then(async () => {
       LOG.debug(
         `Onboarding shown: ${settings.onboardingShown}, hasAccessibilityAndScreenRecordingPermission: ${macOSHasAccessibilityAndScreenRecordingPermission()}, creating onboarding window...`
       );
-      await windowService.createOnboardingWindow();
+      //await windowService.createOnboardingWindow(); FIXME
       settings.onboardingShown = true;
       await settings.save();
 
@@ -156,7 +156,7 @@ app.whenReady().then(async () => {
         settings.studyAndTrackersStartedShown === false) ||
       !isAutoLaunch
     ) {
-      await windowService.createOnboardingWindow('study-trackers-started');
+      //await windowService.createOnboardingWindow('study-trackers-started'); FIXME
       settings.studyAndTrackersStartedShown = true;
       await settings.save();
     }

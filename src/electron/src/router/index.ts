@@ -41,6 +41,11 @@ const router: Router = createRouter({
       path: '/data-export',
       name: 'DataExport',
       component: () => import('../views/DataExportView.vue')
+    },
+    {
+      path: '/chat',
+      name: 'Chat',
+      component: () => import('../views/Chat.vue')
     }
   ]
 });
