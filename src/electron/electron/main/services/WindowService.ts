@@ -186,6 +186,36 @@ export class WindowService {
       this.chatWindow.show();
       return;
     }
+
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const preload = join(__dirname, '../preload/index.mjs');
+
+    this.chatWindow = new BrowserWindow({
+      width: 1000,
+      height: 850,
+      show: false,
+      resizable: true,
+      fullscreenable: true,
+      title: 'PersonalQuery: Chat',
+      webPreferences: {
+        preload
+      }
+    });
+
+    if (process.env.VITE_DEV_SERVER_URL) {
+      await this.chatWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}#/chat`);
+    } else {
+      await this.chatWindow.loadFile(path.join(process.env.DIST, 'index.html'), {
+        hash: 'chat'
+      });
+    }
+
+    this.chatWindow.on('close', () => {
+      this.chatWindow = null;
+    });
+
+    this.chatWindow.show();
   }
 
   public closeOnboardingWindow() {
@@ -361,8 +391,13 @@ export class WindowService {
 
     this.tray.setContextMenu(Menu.buildFromTemplate(menuTemplate));
     this.tray.on('click', () => {
+      this.createChatWindow();
+    });
+
+    this.tray.on('right-click', () => {
       this.tray.popUpContextMenu();
     });
+
     this.tray.setToolTip(
       `Personal Analytics is running...\n\nYou are participating in: ${studyConfig.name}`
     );
