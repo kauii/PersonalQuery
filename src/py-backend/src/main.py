@@ -1,13 +1,13 @@
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from db.database import get_db
+from ..db.database import get_db
 from langgraph.graph import START, StateGraph
 
-from src.chains.activity_chain import extract_activities
-from src.chains.answer_chain import generate_answer
-from src.chains.query_chain import write_query, execute_query
-from src.chains.table_chain import get_tables
-from src.schemas import State
+from chains.activity_chain import extract_activities
+from chains.answer_chain import generate_answer
+from chains.query_chain import write_query, execute_query
+from chains.table_chain import get_tables
+from schemas import State
 
 load_dotenv()
 
