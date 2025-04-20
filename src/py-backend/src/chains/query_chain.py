@@ -3,8 +3,8 @@ from langchain import hub
 from langchain_community.tools import QuerySQLDatabaseTool
 from langchain_core.runnables import RunnableLambda
 from langchain_openai import ChatOpenAI
-from db.database import get_db
-from src.schemas import Table, State, QueryOutput
+from database import get_db
+from schemas import Table, State, QueryOutput
 
 load_dotenv()
 db = get_db()

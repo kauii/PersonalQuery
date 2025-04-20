@@ -1,7 +1,7 @@
 from langchain import hub
 from typing_extensions import Annotated, TypedDict
 from dotenv import load_dotenv
-from src.schemas import State
+from schemas import State
 from langchain_community.utilities import SQLDatabase
 
 load_dotenv()

@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 from langchain import hub
 from langchain_core.output_parsers import PydanticToolsParser
 from langchain_openai import ChatOpenAI
-from src.schemas import Activity, State
+from schemas import Activity, State
 
 load_dotenv()
 output_parser = PydanticToolsParser(tools=[Activity])

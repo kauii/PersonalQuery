@@ -1,8 +1,8 @@
 from langchain import hub
 from dotenv import load_dotenv
 
-from db.database import get_db
-from src.schemas import State
+from database import get_db
+from schemas import State
 from langchain_community.utilities import SQLDatabase
 
 load_dotenv()

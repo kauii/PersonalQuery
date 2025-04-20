@@ -1,7 +1,7 @@
 [project]
 name = "personalquery-backend"
 version = "0.1.0"
-description = ""
+description = "LLM-powered backend for the PersonalQuery Electron app"
 authors = [
     {name = "Kavishan Srirangarasa",email = "kavishanwin8@hotmail.com"}
 ]
@@ -16,6 +16,7 @@ dependencies = [
     "langchain (>=0.3.21,<0.4.0)",
     "sentence-transformers (>=4.0.1,<5.0.0)",
     "langchain-huggingface (>=0.1.2,<0.2.0)",
+    "fastapi (>=0.115.12,<0.116.0)",
 ]
 
 
@@ -25,8 +26,13 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.group.dev.dependencies]
 setuptools = "^78.0.1"
+uvicorn = "^0.34.2"
 
 [tool.poetry]
 package-mode = false
+
+[tool.poetry.scripts]
+backend = "uvicorn server_rest:app --reload --port 8000"
+
 
 

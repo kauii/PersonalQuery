@@ -3,7 +3,7 @@ from langchain import hub
 from langchain_core.output_parsers.openai_tools import PydanticToolsParser
 from langchain_core.runnables import RunnableSequence
 from langchain_openai import ChatOpenAI
-from src.schemas import Table, State
+from schemas import Table, State
 
 load_dotenv()
 output_parser = PydanticToolsParser(tools=[Table])

@@ -1,6 +1,6 @@
 from langchain import hub
 from dotenv import load_dotenv
-from src.schemas import State
+from schemas import State
 
 load_dotenv()
 
