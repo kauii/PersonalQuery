@@ -1,4 +1,6 @@
 import { createRouter, createWebHashHistory, Router } from 'vue-router';
+import Chat from '../views/Chat.vue';
+import ChatView from '../views/ChatView.vue';
 
 const router: Router = createRouter({
   history: createWebHashHistory(),
@@ -44,9 +46,15 @@ const router: Router = createRouter({
     },
     {
       path: '/chat',
-      name: 'Chat',
-      component: () => import('../views/Chat.vue')
-    }
+      component: Chat,
+      children: [
+        {
+          path: ':chatId',
+          component: ChatView
+        }
+      ]
+    },
+    { path: '/', redirect: '/chat/default' }
   ]
 });
 

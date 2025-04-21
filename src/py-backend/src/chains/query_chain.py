@@ -91,12 +91,15 @@ def execute_query(state: State) -> State:
 def format_result_as_markdown(result: list[dict]) -> str:
     if not result:
         return "No results found"
-    headers = result[0].keys()
-    rows = [list(row.values()) for row in result]
 
-    # Create Markdown table
+    headers = list(result[0].keys())
+    headers = ["#"] + headers  # Add row number header
+
     lines = ["| " + " | ".join(headers) + " |", "| " + " | ".join(["---"] * len(headers)) + " |"]
-    for row in rows:
-        lines.append("| " + " | ".join(str(cell) for cell in row) + " |")
+
+    for idx, row in enumerate(result, start=1):
+        row_values = [str(idx)] + [str(value) for value in row.values()]
+        lines.append("| " + " | ".join(row_values) + " |")
 
     return "\n".join(lines)
+
