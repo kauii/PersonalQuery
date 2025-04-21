@@ -1,7 +1,8 @@
 # py-backend/server_rest.py
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from chat_engine import run_chat
 
 app = FastAPI()
@@ -19,5 +20,14 @@ class ChatRequest(BaseModel):
 
 
 @app.post("/chat")
-def chat(req: ChatRequest):
-    return run_chat(req.question)
+async def chat(request: Request):
+    data = await request.json()
+    question = data.get("question", "")
+    response = run_chat(question)
+    return JSONResponse(content={
+        "answer": response["answer"],
+        "query": response["query"],
+        "activities": response["activities"],
+        "tables": response["tables"],
+        "result": response["result"]
+    })

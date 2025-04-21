@@ -1,3 +1,5 @@
+import os
+
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langgraph.graph import START, StateGraph
@@ -11,15 +13,17 @@ from schemas import State
 load_dotenv()
 
 llm_openai = ChatOpenAI(
-    model="openai-gpt-4o",
+    model="gpt-4o",
     temperature=0.0,
-    base_url="http://llm.hasel.dev:20769/v1",
+    base_url="https://api.openai.com/v1",
+    api_key=os.getenv("MY_OPENAI_API_KEY")
 )
 
 llm_llama31 = ChatOpenAI(
     model="llama31instruct",
     temperature=0.0,
     base_url="http://llm.hasel.dev:20769/v1",
+    api_key=os.getenv("OPENAI_API_KEY")
 )
 
 graph_builder = StateGraph(State).add_sequence(
