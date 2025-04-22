@@ -41,9 +41,7 @@ def get_custom_table_info(state: State):
     return "\n\n---\n\n".join(prompt_parts)
 
 
-
 def query_chain(llm: ChatOpenAI):
-
     return (
             RunnableLambda(lambda state: main_template.invoke({
                 "dialect": db.dialect,
@@ -103,4 +101,3 @@ def format_result_as_markdown(result: list[dict]) -> str:
         lines.append("| " + " | ".join(row_values) + " |")
 
     return "\n".join(lines)
-

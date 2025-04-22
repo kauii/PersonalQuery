@@ -7,6 +7,7 @@ from typing_extensions import TypedDict, Annotated
 
 class State(TypedDict):
     question: str
+    title: str
     branch: str
     tables: List[str]
     activities: List[str]

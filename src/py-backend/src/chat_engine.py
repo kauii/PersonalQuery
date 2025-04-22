@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any
+from typing import Dict
 
 from dotenv import load_dotenv
 from langchain_core.messages import AIMessage
@@ -12,7 +12,7 @@ from chains.activity_chain import extract_activities
 from chains.answer_chain import generate_answer, general_answer
 from chains.query_chain import write_query, execute_query
 from chains.table_chain import get_tables
-from chains.classify_question import classify_question
+from chains.init_chain import classify_question
 from chat_store import save_memory, load_memory
 from schemas import State
 from llm_registry import LLMRegistry
@@ -82,6 +82,7 @@ def run_chat(question: str, chat_id: str) -> Dict:
 
     state: State = {
         "question": question,
+        "title": "New Chat",
         "branch": "",
         "tables": [],
         "activities": [],
