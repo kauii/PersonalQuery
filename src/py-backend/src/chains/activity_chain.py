@@ -2,6 +2,8 @@ from dotenv import load_dotenv
 from langchain import hub
 from langchain_core.output_parsers import PydanticToolsParser
 from langchain_openai import ChatOpenAI
+
+from llm_registry import LLMRegistry
 from schemas import Activity, State
 
 load_dotenv()
@@ -22,7 +24,7 @@ def extract_activities(state: State) -> State:
     if "window_activity" not in state["tables"]:
         return state
 
-    llm = state['llm_openai']
+    llm = LLMRegistry.get("openai")
     activities = activity_chain(llm).invoke(state)
     state["activities"] = activities
     return state

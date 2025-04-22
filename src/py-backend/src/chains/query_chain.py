@@ -4,6 +4,7 @@ from langchain_community.tools import QuerySQLDatabaseTool
 from langchain_core.runnables import RunnableLambda
 from langchain_openai import ChatOpenAI
 from database import get_db
+from llm_registry import LLMRegistry
 from schemas import Table, State, QueryOutput
 
 load_dotenv()
@@ -57,7 +58,7 @@ def query_chain(llm: ChatOpenAI):
 
 def write_query(state: State) -> State:
     """For LangGraph Orchestration"""
-    llm = state['llm_openai']
+    llm = LLMRegistry.get("openai")
     query = query_chain(llm).invoke(state)
     state['query'] = query
     return state

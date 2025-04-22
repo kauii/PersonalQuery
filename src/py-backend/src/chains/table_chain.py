@@ -3,6 +3,8 @@ from langchain import hub
 from langchain_core.output_parsers.openai_tools import PydanticToolsParser
 from langchain_core.runnables import RunnableSequence
 from langchain_openai import ChatOpenAI
+
+from llm_registry import LLMRegistry
 from schemas import Table, State
 
 load_dotenv()
@@ -21,7 +23,7 @@ def table_chain(llm: ChatOpenAI) -> RunnableSequence[State, list[str]]:
 
 def get_tables(state: State) -> State:
     """For LangGraph Orchestration"""
-    llm = state['llm_openai']
+    llm = LLMRegistry.get("openai")
     tables = table_chain(llm).invoke(state)
     state['tables'] = tables
     return state
