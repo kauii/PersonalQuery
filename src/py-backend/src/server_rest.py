@@ -1,4 +1,3 @@
-# py-backend/server_rest.py
 from fastapi import FastAPI, Request
 from langchain.memory import ConversationBufferMemory
 from pydantic import BaseModel
@@ -30,9 +29,11 @@ async def chat(request: Request):
     response = run_chat(question, chat_id)
     return JSONResponse(content=response)
 
+
 @app.get("/chats")
 def get_all_chats():
     return {"chats": list_chats()}
+
 
 @app.get("/chats/{chat_id}")
 def get_chat(chat_id: str):
@@ -40,6 +41,7 @@ def get_chat(chat_id: str):
     return {
         "messages": [msg.dict() for msg in memory.chat_memory.messages]
     }
+
 
 @app.post("/chats")
 def create_chat():

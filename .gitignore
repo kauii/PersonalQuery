@@ -66,5 +66,8 @@ documentation/OCR Stuff/StandaloneOcr.rar
 
 # IntelliJ
 .idea/*
+!.idea/runConfigurations/
+
+# Python Backend
 /src/py-backend/.env
 /src/py-backend/src/chats/

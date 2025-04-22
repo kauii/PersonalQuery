@@ -10,7 +10,7 @@ from schemas import QuestionType, State
 load_dotenv()
 output_parser = PydanticToolsParser(tools=[QuestionType])
 prompt_template = hub.pull("classify_question")
-prompt_template_title = hub.pull("generate_title")
+#prompt_template_title = hub.pull("generate_title")
 
 
 def classify_chain(llm: ChatOpenAI):
@@ -32,7 +32,7 @@ def classify_question(state: State) -> State:
 def generate_title(state: State) -> State:
     """For LangGraph Orchestration"""
     llm = LLMRegistry.get("llama31")
-    prompt: ChatPromptValue = prompt_template_title.invoke({
+    prompt: ChatPromptValue = prompt_template.invoke({
         "question": state["question"],
     })
 
