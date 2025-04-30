@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router';
 interface ChatEntry {
   id: string;
   title: string;
+  last_activity: string | null;
 }
 
 const chats = ref<ChatEntry[]>([]);
@@ -13,7 +14,11 @@ const router = useRouter();
 async function fetchChats() {
   const res = await fetch('http://localhost:8000/chats');
   const data = await res.json();
-  chats.value = data.chats;
+  chats.value = data.chats.sort((a: ChatEntry, b: ChatEntry) => {
+    if (!a.last_activity) return 1;
+    if (!b.last_activity) return -1;
+    return new Date(b.last_activity).getTime() - new Date(a.last_activity).getTime();
+  });
 }
 
 async function createNewChat() {

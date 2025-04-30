@@ -40,11 +40,13 @@ async function fetchChatHistory() {
   const res = await fetch(`http://localhost:8000/chats/${chatId.value}`);
   if (res.ok) {
     const data = await res.json();
-    messages.value = data.messages.map((msg: any) => ({
-      role: msg.type === 'human' ? 'user' : 'assistant',
-      content: msg.content,
-      meta: msg.meta || msg.additional_kwargs?.meta
-    }));
+    messages.value = data.messages
+      .filter((msg: any) => msg.type !== 'system')
+      .map((msg: any) => ({
+        role: msg.type === 'human' ? 'user' : 'assistant',
+        content: msg.content,
+        meta: msg.meta || msg.additional_kwargs?.meta
+      }));
   }
 }
 

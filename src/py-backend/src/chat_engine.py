@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Dict, List
 
@@ -88,13 +89,13 @@ def initialize():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS chat_metadata (
             thread_id TEXT PRIMARY KEY,
-            title TEXT
+            title TEXT,
+            last_activity TEXT
         )
     """)
 
 
 def get_next_thread_id() -> str:
-    """Determine the next available thread ID by inspecting the checkpoints table."""
     conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
     cursor = conn.cursor()
 
@@ -117,11 +118,9 @@ def get_next_thread_id() -> str:
 
 
 def list_chats() -> List[Dict[str, str]]:
-    """Return all unique chat thread IDs and their titles from the DB."""
     conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
     cursor = conn.cursor()
 
-    # Ensure checkpoints table exists
     cursor.execute("""
         SELECT name FROM sqlite_master
         WHERE type='table' AND name='checkpoints'
@@ -130,24 +129,29 @@ def list_chats() -> List[Dict[str, str]]:
         conn.close()
         return []
 
-    # Get all distinct thread_ids
-    cursor.execute("SELECT DISTINCT thread_id FROM checkpoints ORDER BY CAST(thread_id AS INTEGER)")
+    cursor.execute("SELECT DISTINCT thread_id FROM checkpoints")
     thread_ids = [row[0] for row in cursor.fetchall()]
 
     result = []
     for tid in thread_ids:
-        # Attempt to fetch title from chat_metadata
-        cursor.execute("SELECT title FROM chat_metadata WHERE thread_id = ?", (tid,))
+        cursor.execute("SELECT title, last_activity FROM chat_metadata WHERE thread_id = ?", (tid,))
         row = cursor.fetchone()
-        title = row[0] if row else f"New Chat [{tid}]"
-        result.append({"id": tid, "title": title})
+
+        title_raw = row[0] if row else None
+        title = title_raw.strip() if title_raw and title_raw.strip() else f"New Chat [{tid}]"
+        last_activity = row[1] if row and row[1] else None
+
+        result.append({
+            "id": tid,
+            "title": title,
+            "last_activity": last_activity
+        })
 
     conn.close()
     return result
 
 
 def get_chat_history(chat_id: str) -> Dict:
-    """Retrieve all messages from a given chat_id (thread)."""
     config = {"configurable": {"thread_id": chat_id}}
 
     try:
@@ -168,7 +172,6 @@ def get_chat_history(chat_id: str) -> Dict:
 
 
 def is_new_chat(thread_id: str) -> bool:
-    """Returns True if the thread_id does not yet exist in the checkpoints table."""
     conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
     cursor = conn.cursor()
 
@@ -197,13 +200,17 @@ def title_exists(thread_id: str) -> bool:
     conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT 1 FROM chat_metadata
+        SELECT title FROM chat_metadata
         WHERE thread_id = ?
         LIMIT 1
     """, (thread_id,))
-    exists = cursor.fetchone() is not None
+    row = cursor.fetchone()
     conn.close()
-    return exists
+
+    if not row or row[0] is None:
+        return False
+
+    return bool(row[0].strip())
 
 
 def run_chat(question: str, chat_id: str) -> Dict:
@@ -247,6 +254,17 @@ def run_chat(question: str, chat_id: str) -> Dict:
     }
 
     final_state = graph.invoke(state, config)
+
+    now = datetime.now(UTC).isoformat()
+    conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
+    cursor = conn.cursor()
+    cursor.execute("""
+            INSERT INTO chat_metadata (thread_id, last_activity)
+            VALUES (?, ?)
+            ON CONFLICT(thread_id) DO UPDATE SET last_activity = excluded.last_activity
+        """, (chat_id, now))
+    conn.commit()
+    conn.close()
 
     return {
         "answer": final_state["answer"],

@@ -36,6 +36,12 @@ def classify_question(state: State) -> State:
     return state
 
 
+def strip_outer_quotes(text: str) -> str:
+    if (text.startswith('"') and text.endswith('"')) or (text.startswith("'") and text.endswith("'")):
+        return text[1:-1].strip()
+    return text.strip()
+
+
 def generate_title(state: State) -> State:
     """For LangGraph Orchestration"""
     llm = LLMRegistry.get("llama31")
@@ -44,7 +50,8 @@ def generate_title(state: State) -> State:
         "max_characters": 15
     })
 
-    title = llm.invoke(prompt.to_string()).content
+    raw_title = llm.invoke(prompt.to_string()).content
+    title = strip_outer_quotes(raw_title)
     thread_id = state["thread_id"]
 
     try:

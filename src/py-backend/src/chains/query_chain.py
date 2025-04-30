@@ -46,7 +46,7 @@ def query_chain(llm: ChatOpenAI):
     return (
             RunnableLambda(lambda state: main_template.invoke({
                 "dialect": db.dialect,
-                "top_k": 100,
+                "top_k": 30,
                 "table_info": get_custom_table_info(state) if state["tables"] else db.get_table_info(),
                 "input": state["question"]
             }))

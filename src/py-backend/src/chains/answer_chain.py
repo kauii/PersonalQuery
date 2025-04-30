@@ -27,7 +27,7 @@ def answer_chain(llm: ChatOpenAI, state: State):
 
 def generate_answer(state: State) -> State:
     """For LangGraph Orchestration"""
-    llm = LLMRegistry.get("openai")
+    llm = LLMRegistry.get("llama31")
     prompt: ChatPromptValue = prompt_template.invoke({
         "question": state["question"],
         "result": state["result"]
@@ -41,7 +41,7 @@ def generate_answer(state: State) -> State:
 
 
 def general_answer(state: State) -> State:
-    llm = LLMRegistry.get("openai")
+    llm = LLMRegistry.get("llama31")
     messages = state["messages"]
     response = llm.invoke(messages).content
     state["answer"] = response
