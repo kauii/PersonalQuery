@@ -71,3 +71,4 @@ documentation/OCR Stuff/StandaloneOcr.rar
 # Python Backend
 /src/py-backend/.env
 /src/py-backend/src/chats/
+*.pyc
