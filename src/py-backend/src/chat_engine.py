@@ -1,5 +1,4 @@
 import os
-import json
 import sqlite3
 from pathlib import Path
 from typing import Dict, List
@@ -15,11 +14,10 @@ from chains.activity_chain import extract_activities
 from chains.answer_chain import generate_answer, general_answer
 from chains.query_chain import write_query, execute_query
 from chains.table_chain import get_tables
-from chains.init_chain import classify_question
+from chains.init_chain import classify_question, generate_title
 from schemas import State
 from llm_registry import LLMRegistry
 
-THREAD_COUNTER_FILE = os.path.join(os.path.dirname(__file__), "thread_counter.json")
 APPDATA_PATH = Path(os.getenv("APPDATA", Path.home()))
 CHECKPOINT_DB_PATH = APPDATA_PATH / "personal-analytics" / "chat_checkpoints.db"
 
@@ -51,7 +49,18 @@ def initialize():
     graph_builder = StateGraph(State)
 
     graph_builder.add_node("classify_question", classify_question)
-    graph_builder.add_edge(START, "classify_question")
+    graph_builder.add_node("generate_title", generate_title)
+
+    graph_builder.add_conditional_edges(
+        START,
+        lambda s: "generate_title" if s["title"] is None else "classify_question",
+        {
+            "generate_title": "generate_title",
+            "classify_question": "classify_question"
+        }
+    )
+
+    graph_builder.add_edge("generate_title", "classify_question")
 
     graph_builder.add_sequence([
         get_tables,
@@ -77,29 +86,50 @@ def initialize():
     checkpointer = SqliteSaver(conn)
     graph = graph_builder.compile(checkpointer=checkpointer)
 
-    if not os.path.exists(THREAD_COUNTER_FILE):
-        with open(THREAD_COUNTER_FILE, "w") as f:
-            json.dump({"counter": 1}, f)
-
 
 def get_next_thread_id() -> str:
-    """Get the next available thread ID, increment the counter."""
-    with open(THREAD_COUNTER_FILE, "r+") as f:
-        data = json.load(f)
-        thread_id = str(data["counter"])
-        data["counter"] += 1
-        f.seek(0)
-        json.dump(data, f)
-        f.truncate()
-    return thread_id
+    """Determine the next available thread ID by inspecting the checkpoints table."""
+    conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT name FROM sqlite_master
+        WHERE type='table' AND name='checkpoints'
+    """)
+    if cursor.fetchone() is None:
+        conn.close()
+        return "1"
+
+    cursor.execute("SELECT DISTINCT thread_id FROM checkpoints")
+    thread_ids = [row[0] for row in cursor.fetchall()]
+    conn.close()
+
+    numeric_ids = [int(tid) for tid in thread_ids if tid.isdigit()]
+    next_id = max(numeric_ids, default=0) + 1
+
+    return str(next_id)
 
 
 def list_chats() -> List[str]:
-    """List all created chat IDs."""
-    with open(THREAD_COUNTER_FILE, "r") as f:
-        data = json.load(f)
-    counter = data["counter"]
-    return [str(i) for i in range(1, counter)]
+    """Return all unique chat thread IDs stored in the checkpoints table."""
+    conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
+    cursor = conn.cursor()
+
+    # Check if the table exists (in case of fresh DB)
+    cursor.execute("""
+        SELECT name FROM sqlite_master
+        WHERE type='table' AND name='checkpoints'
+    """)
+    if cursor.fetchone() is None:
+        conn.close()
+        return []
+
+    # Select distinct thread_ids
+    cursor.execute("SELECT DISTINCT thread_id FROM checkpoints ORDER BY CAST(thread_id AS INTEGER)")
+    thread_ids = [row[0] for row in cursor.fetchall()]
+    conn.close()
+
+    return thread_ids
 
 
 def get_chat_history(chat_id: str) -> Dict:
@@ -123,6 +153,32 @@ def get_chat_history(chat_id: str) -> Dict:
     return {"messages": result}
 
 
+def is_new_chat(thread_id: str) -> bool:
+    """Returns True if the thread_id does not yet exist in the checkpoints table."""
+    conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT name FROM sqlite_master
+        WHERE type='table' AND name='checkpoints'
+    """)
+    if cursor.fetchone() is None:
+        conn.close()
+        return True
+
+    cursor.execute("""
+        SELECT 1 FROM checkpoints
+        WHERE thread_id = ?
+        LIMIT 1
+    """, (thread_id,))
+    result = cursor.fetchone()
+    conn.close()
+    print("RESULT:")
+    print(result)
+
+    return result is None
+
+
 def run_chat(question: str, chat_id: str) -> Dict:
     """Main chat execution."""
     config = {"configurable": {"thread_id": chat_id}}
@@ -131,6 +187,9 @@ def run_chat(question: str, chat_id: str) -> Dict:
         snapshot = graph.get_state(config)
         messages = snapshot.values.get("messages", [])
     except Exception:
+        print("NEW")
+        print("NEW")
+        print("NEW")
         messages = []
 
     if not any(isinstance(msg, SystemMessage) for msg in messages):
@@ -147,10 +206,12 @@ def run_chat(question: str, chat_id: str) -> Dict:
 
     messages.append(HumanMessage(content=question))
 
+    is_new = is_new_chat(chat_id)
+
     state: State = {
         "messages": messages,
         "question": question,
-        "title": "New Chat",
+        "title": None if is_new else "",
         "branch": "",
         "tables": [],
         "activities": [],

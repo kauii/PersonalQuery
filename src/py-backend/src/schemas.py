@@ -9,7 +9,7 @@ from langchain_core.messages import BaseMessage
 class State(TypedDict):
     messages: List[BaseMessage]
     question: str
-    title: str
+    title: str | None
     branch: str
     tables: List[str]
     activities: List[str]
