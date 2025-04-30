@@ -2,7 +2,12 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 
-const chats = ref<string[]>([]);
+interface ChatEntry {
+  id: string;
+  title: string;
+}
+
+const chats = ref<ChatEntry[]>([]);
 const router = useRouter();
 
 async function fetchChats() {
@@ -26,12 +31,13 @@ onMounted(fetchChats);
   <div class="flex h-screen w-64 flex-col gap-2 bg-base-200 p-4">
     <button class="btn btn-primary mb-2 w-full" @click="createNewChat">+ New Chat</button>
 
-    <div v-for="chat in chats" :key="chat">
-      <router-link :to="`/chat/${chat}`" class="btn btn-sm block w-full truncate text-left">
-        {{ chat }}
+    <div v-for="chat in chats" :key="chat.id">
+      <router-link :to="`/chat/${chat.id}`" class="btn btn-sm block w-full truncate text-left">
+        {{ chat.title }}
       </router-link>
     </div>
   </div>
 </template>
+
 
 <style scoped lang="less"></style>

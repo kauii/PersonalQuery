@@ -51,16 +51,7 @@ def initialize():
     graph_builder.add_node("classify_question", classify_question)
     graph_builder.add_node("generate_title", generate_title)
 
-    graph_builder.add_conditional_edges(
-        START,
-        lambda s: "generate_title" if s["title"] is None else "classify_question",
-        {
-            "generate_title": "generate_title",
-            "classify_question": "classify_question"
-        }
-    )
-
-    graph_builder.add_edge("generate_title", "classify_question")
+    graph_builder.add_edge(START, "classify_question")
 
     graph_builder.add_sequence([
         get_tables,
@@ -75,16 +66,31 @@ def initialize():
 
     graph_builder.add_conditional_edges(
         "classify_question",
-        lambda s: s["branch"],
+        lambda s: (
+            "generate_title" if s["branch"] == "data_query" and not s.get("title_exist", False)
+            else "get_tables" if s["branch"] == "data_query"
+            else "general_answer"
+        ),
         {
-            "data_query": "get_tables",
-            "general_qa": "general_answer"
+            "generate_title": "generate_title",
+            "get_tables": "get_tables",
+            "general_answer": "general_answer"
         }
     )
+
+    graph_builder.add_edge("generate_title", "get_tables")
 
     conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
     checkpointer = SqliteSaver(conn)
     graph = graph_builder.compile(checkpointer=checkpointer)
+
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS chat_metadata (
+            thread_id TEXT PRIMARY KEY,
+            title TEXT
+        )
+    """)
 
 
 def get_next_thread_id() -> str:
@@ -110,12 +116,12 @@ def get_next_thread_id() -> str:
     return str(next_id)
 
 
-def list_chats() -> List[str]:
-    """Return all unique chat thread IDs stored in the checkpoints table."""
+def list_chats() -> List[Dict[str, str]]:
+    """Return all unique chat thread IDs and their titles from the DB."""
     conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
     cursor = conn.cursor()
 
-    # Check if the table exists (in case of fresh DB)
+    # Ensure checkpoints table exists
     cursor.execute("""
         SELECT name FROM sqlite_master
         WHERE type='table' AND name='checkpoints'
@@ -124,12 +130,20 @@ def list_chats() -> List[str]:
         conn.close()
         return []
 
-    # Select distinct thread_ids
+    # Get all distinct thread_ids
     cursor.execute("SELECT DISTINCT thread_id FROM checkpoints ORDER BY CAST(thread_id AS INTEGER)")
     thread_ids = [row[0] for row in cursor.fetchall()]
-    conn.close()
 
-    return thread_ids
+    result = []
+    for tid in thread_ids:
+        # Attempt to fetch title from chat_metadata
+        cursor.execute("SELECT title FROM chat_metadata WHERE thread_id = ?", (tid,))
+        row = cursor.fetchone()
+        title = row[0] if row else f"New Chat [{tid}]"
+        result.append({"id": tid, "title": title})
+
+    conn.close()
+    return result
 
 
 def get_chat_history(chat_id: str) -> Dict:
@@ -179,6 +193,19 @@ def is_new_chat(thread_id: str) -> bool:
     return result is None
 
 
+def title_exists(thread_id: str) -> bool:
+    conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT 1 FROM chat_metadata
+        WHERE thread_id = ?
+        LIMIT 1
+    """, (thread_id,))
+    exists = cursor.fetchone() is not None
+    conn.close()
+    return exists
+
+
 def run_chat(question: str, chat_id: str) -> Dict:
     """Main chat execution."""
     config = {"configurable": {"thread_id": chat_id}}
@@ -206,12 +233,11 @@ def run_chat(question: str, chat_id: str) -> Dict:
 
     messages.append(HumanMessage(content=question))
 
-    is_new = is_new_chat(chat_id)
-
     state: State = {
+        "thread_id": chat_id,
         "messages": messages,
         "question": question,
-        "title": None if is_new else "",
+        "title_exist": title_exists(chat_id),
         "branch": "",
         "tables": [],
         "activities": [],

@@ -7,9 +7,10 @@ from langchain_core.messages import BaseMessage
 
 
 class State(TypedDict):
+    thread_id: str
     messages: List[BaseMessage]
     question: str
-    title: str | None
+    title_exist: bool
     branch: str
     tables: List[str]
     activities: List[str]
