@@ -37,12 +37,20 @@ onMounted(fetchChats);
     <button class="btn btn-primary mb-2 w-full" @click="createNewChat">+ New Chat</button>
 
     <div v-for="chat in chats" :key="chat.id">
-      <router-link :to="`/chat/${chat.id}`" class="btn btn-sm block w-full truncate text-left">
-        {{ chat.title }}
+      <router-link
+        :to="`/chat/${chat.id}`"
+        class="btn btn-sm block w-full text-left flex items-center justify-between"
+        :class="{
+          'btn-primary': chat.id === $route.params.chatId,
+          'btn-ghost': chat.id !== $route.params.chatId
+        }"
+      >
+        <span class="truncate w-full">{{ chat.title }}</span>
       </router-link>
     </div>
   </div>
 </template>
+
 
 
 <style scoped lang="less"></style>
