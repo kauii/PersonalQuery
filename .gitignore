@@ -72,3 +72,4 @@ documentation/OCR Stuff/StandaloneOcr.rar
 /src/py-backend/.env
 /src/py-backend/src/chats/
 *.pyc
+/src/py-backend/src/thread_counter.json
