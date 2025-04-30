@@ -34,7 +34,6 @@ def save_memory(chat_id: str, memory: ConversationBufferMemory):
         json.dump(data, f, indent=2)
 
 
-
 def load_memory(chat_id: str) -> ConversationBufferMemory:
     memory = ConversationBufferMemory(return_messages=True)
     path = os.path.join(CHAT_DIR, f"{chat_id}.json")
@@ -56,7 +55,6 @@ def load_memory(chat_id: str) -> ConversationBufferMemory:
             )
 
     return memory
-
 
 
 def list_chats() -> List[str]:

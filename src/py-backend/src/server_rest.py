@@ -3,9 +3,9 @@ from langchain.memory import ConversationBufferMemory
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from chat_engine import run_chat
-from chat_store import list_chats, load_memory, save_memory
+from chat_engine import run_chat, get_next_thread_id, get_chat_history, list_chats, initialize
 
+initialize()
 app = FastAPI()
 
 app.add_middleware(
@@ -20,12 +20,17 @@ class ChatRequest(BaseModel):
     question: str
 
 
+@app.post("/chats")
+def create_chat():
+    chat_id = get_next_thread_id()
+    return {"chat_id": chat_id}
+
+
 @app.post("/chat")
 async def chat(request: Request):
     data = await request.json()
     question = data.get("question", "")
-    chat_id = data.get("chat_id", "default")
-
+    chat_id = data.get("chat_id", "1")
     response = run_chat(question, chat_id)
     return JSONResponse(content=response)
 
@@ -37,15 +42,4 @@ def get_all_chats():
 
 @app.get("/chats/{chat_id}")
 def get_chat(chat_id: str):
-    memory = load_memory(chat_id)
-    return {
-        "messages": [msg.dict() for msg in memory.chat_memory.messages]
-    }
-
-
-@app.post("/chats")
-def create_chat():
-    import uuid
-    chat_id = str(uuid.uuid4())
-    save_memory(chat_id, ConversationBufferMemory(return_messages=True))
-    return {"chat_id": chat_id}
+    return get_chat_history(chat_id)

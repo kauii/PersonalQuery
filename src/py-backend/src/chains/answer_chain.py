@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 from langchain import hub
+from langchain_core.messages import AIMessage
 from langchain_core.prompt_values import ChatPromptValue
 
 from llm_registry import LLMRegistry
@@ -26,20 +27,23 @@ def answer_chain(llm: ChatOpenAI, state: State):
 
 def generate_answer(state: State) -> State:
     """For LangGraph Orchestration"""
-    llm = LLMRegistry.get("llama31")
+    llm = LLMRegistry.get("openai")
     prompt: ChatPromptValue = prompt_template.invoke({
         "question": state["question"],
         "result": state["result"]
     })
+    response = llm.invoke(prompt.to_string()).content
 
-    state["answer"] = llm.invoke(prompt.to_string()).content
+    state["answer"] = response
+    messages = state["messages"]
+    messages.append(AIMessage(content=response))
     return state
 
 
 def general_answer(state: State) -> State:
-    llm = LLMRegistry.get("llama31")
-    prompt: ChatPromptValue = prompt_template_general.invoke({
-        "question": state["question"]
-    })
-    state["answer"] = llm.invoke(prompt.to_string()).content
+    llm = LLMRegistry.get("openai")
+    messages = state["messages"]
+    response = llm.invoke(messages).content
+    state["answer"] = response
+    messages.append(AIMessage(content=response))
     return state

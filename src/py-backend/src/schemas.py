@@ -3,9 +3,11 @@ from typing import List, Literal
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict, Annotated
+from langchain_core.messages import BaseMessage
 
 
 class State(TypedDict):
+    messages: List[BaseMessage]
     question: str
     title: str
     branch: str

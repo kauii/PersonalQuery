@@ -1,17 +1,15 @@
 from dotenv import load_dotenv
 from langchain import hub
-from langchain_community.tools import QuerySQLDatabaseTool
 from langchain_core.runnables import RunnableLambda
 from langchain_openai import ChatOpenAI
 from database import get_db
 from llm_registry import LLMRegistry
-from schemas import Table, State, QueryOutput
+from schemas import State, QueryOutput
 
 load_dotenv()
 db = get_db()
 
-main_template = hub.pull("langchain-ai/sql-query-system-prompt")
-
+main_template = hub.pull("sql-query-system-prompt")
 esr_template = hub.pull("experience_sampling_responses")
 ud_template = hub.pull("usage_data")
 ui_template = hub.pull("user_input")
@@ -24,6 +22,7 @@ def get_custom_table_info(state: State):
     activities = state.get("activities", None)
     for table in tables:
         template = None
+        db._sample_rows_in_table_info = False
         template_input = {"table_info": db.get_table_info([table])}
         if table == "experience_sampling_responses":
             template = esr_template
@@ -35,6 +34,8 @@ def get_custom_table_info(state: State):
             template = wa_template
             if activities:
                 template_input["activities"] = activities
+            else:
+                template_input["activities"] = ""
         if template:
             result = template.invoke(template_input)
             prompt_parts.append(result.to_string())
@@ -45,7 +46,7 @@ def query_chain(llm: ChatOpenAI):
     return (
             RunnableLambda(lambda state: main_template.invoke({
                 "dialect": db.dialect,
-                "top_k": 30,
+                "top_k": 100,
                 "table_info": get_custom_table_info(state) if state["tables"] else db.get_table_info(),
                 "input": state["question"]
             }))
@@ -62,25 +63,7 @@ def write_query(state: State) -> State:
     return state
 
 
-def is_safe_query(query: str) -> bool:
-    """Check if the SQL query is read-only."""
-    lowered = query.lower()
-    unsafe_keywords = ["insert", "update", "delete", "drop", "alter", "create", "truncate"]
-    return not any(keyword in lowered for keyword in unsafe_keywords)
-
-
-def execute_query_old(state: State) -> str:
-    if not is_safe_query(state["query"]):
-        raise ValueError("Unsafe query detected. Aborting execution.")
-    execute_query_tool = QuerySQLDatabaseTool(db=db)
-    result = execute_query_tool.invoke(state["query"])
-    return result
-
-
 def execute_query(state: State) -> State:
-    if not is_safe_query(state["query"]):
-        raise ValueError("Unsafe query detected. Aborting execution.")
-    execute_query_tool = QuerySQLDatabaseTool(db=db)
     result = db._execute(state["query"])
 
     state["result"] = format_result_as_markdown(result)
