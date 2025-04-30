@@ -66,3 +66,10 @@ documentation/OCR Stuff/StandaloneOcr.rar
 
 # IntelliJ
 .idea/*
+!.idea/runConfigurations/
+
+# Python Backend
+/src/py-backend/.env
+/src/py-backend/src/chats/
+*.pyc
+/src/py-backend/src/thread_counter.json
