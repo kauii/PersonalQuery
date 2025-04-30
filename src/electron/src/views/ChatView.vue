@@ -118,7 +118,14 @@ function cleanQuery(query: string): string {
         <div :class="msg.role === 'user' ? 'chat-bubble chat-bubble-primary' : 'chat-bubble'">
           <div class="flex items-start justify-between gap-2">
             <!-- Message content -->
-            <div v-html="formatMessage(msg.content)" class="prose prose-sm max-w-none flex-1"></div>
+            <div
+              v-html="formatMessage(msg.content)"
+              :class="[
+                'prose prose-sm max-w-none flex-1',
+                msg.role === 'user' ? 'text-black' : ''
+              ]"
+            />
+
             <!-- Info button only for assistant with meta -->
             <button
               v-if="msg.role === 'assistant' && msg.meta"
