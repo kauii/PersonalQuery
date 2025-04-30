@@ -478,16 +478,16 @@ export class WindowService {
       },
       { type: 'separator' },
       {
-        label: 'Quit',
+        label: 'Open Chat',
         click: () => {
-          app.quit();
+          this.createChatWindow();
         }
       },
       { type: 'separator' },
       {
-        label: 'Open Chat',
+        label: 'Quit',
         click: () => {
-          this.createChatWindow();
+          app.quit();
         }
       }
     ];
