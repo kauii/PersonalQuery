@@ -10,4 +10,5 @@ export default interface WindowActivityDto {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+  durationInSeconds: number | null;
 }
