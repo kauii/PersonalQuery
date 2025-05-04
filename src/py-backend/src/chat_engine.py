@@ -17,7 +17,7 @@ from chains.answer_chain import generate_answer, general_answer
 from chains.query_chain import write_query, execute_query
 from chains.table_chain import get_tables
 from chains.init_chain import classify_question, generate_title
-from db_modification import update_sessions_from_usage_data
+from db_modification import update_sessions_from_usage_data, add_window_activity_durations
 from schemas import State
 from llm_registry import LLMRegistry
 
@@ -98,6 +98,7 @@ def initialize():
     """)
 
     update_sessions_from_usage_data(DB_PATH)
+    add_window_activity_durations(DB_PATH)
 
 
 

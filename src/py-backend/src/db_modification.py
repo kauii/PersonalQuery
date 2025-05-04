@@ -58,6 +58,11 @@ def update_sessions_from_usage_data(db_path):
             esr = esr_map.get(created_at)
             esr_id, question, scale, response, skipped = esr if esr else (None, None, None, None, None)
 
+            if question == "Compared to your normal level of productivity, how productive do you consider the previous session?":
+                question = "How productive was this session?"
+            elif question == "How well did you spend your time in the previous session?":
+                question = "How well spent time?"
+
             sessions.append((
                 uid,  # use usage_data ID as session ID
                 current_start,
@@ -102,5 +107,37 @@ def update_sessions_from_usage_data(db_path):
         ''', session)
 
     cur.execute('DELETE FROM session WHERE durationInSeconds IS NOT NULL AND durationInSeconds < 300')
+    conn.commit()
+    conn.close()
+
+
+def add_window_activity_durations(db_path):
+    conn = sqlite3.connect(str(db_path), check_same_thread=False)
+    cur = conn.cursor()
+
+    # Try to add column
+    try:
+        cur.execute('ALTER TABLE window_activity ADD COLUMN durationInSeconds INTEGER')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    # Fetch window activations sorted by timestamp
+    cur.execute('SELECT rowid, ts FROM window_activity ORDER BY ts ASC')
+    rows = cur.fetchall()
+
+    for i in range(len(rows) - 1):
+        current_rowid, current_ts = rows[i]
+        next_ts = rows[i + 1][1]
+
+        start_dt = datetime.fromisoformat(current_ts)
+        end_dt = datetime.fromisoformat(next_ts)
+        duration = int((end_dt - start_dt).total_seconds())
+
+        cur.execute('''
+            UPDATE window_activity
+            SET durationInSeconds = ?
+            WHERE rowid = ?
+        ''', (duration, current_rowid))
+
     conn.commit()
     conn.close()
