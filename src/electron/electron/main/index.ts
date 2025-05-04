@@ -48,6 +48,7 @@ const ipcHandler: IpcHandler = new IpcHandler(
   experienceSamplingService,
   workScheduleService
 );
+const isDev = process.env.NODE_ENV === 'development';
 
 // Disable GPU Acceleration for Windows 7
 if (release().startsWith('6.1')) {
@@ -59,7 +60,7 @@ if (process.platform === 'win32') {
   app.setAppUserModelId(app.getName());
 }
 
-if (!app.requestSingleInstanceLock()) {
+if (!isDev && !app.requestSingleInstanceLock()) {
   console.log('Another instance of the app is already running');
   app.quit();
   process.exit(0);
@@ -112,25 +113,26 @@ app.whenReady().then(async () => {
 
     await appUpdaterService.checkForUpdates({ silent: true });
     appUpdaterService.startCheckForUpdatesInterval();
+    if (!isDev) {
+      if (studyConfig.trackers.windowActivityTracker.enabled) {
+        await trackers.registerTrackerCallback(
+          TrackerType.WindowsActivityTracker,
+          WindowActivityTrackerService.handleWindowChange
+        );
+      }
+      if (studyConfig.trackers.userInputTracker.enabled) {
+        await trackers.registerTrackerCallback(
+          TrackerType.UserInputTracker,
+          UserInputTrackerService.handleUserInputEvent
+        );
+      }
+      if (studyConfig.trackers.experienceSamplingTracker.enabled) {
+        await trackers.registerTrackerCallback(TrackerType.ExperienceSamplingTracker);
+      }
 
-    if (studyConfig.trackers.windowActivityTracker.enabled) {
-      await trackers.registerTrackerCallback(
-        TrackerType.WindowsActivityTracker,
-        WindowActivityTrackerService.handleWindowChange
-      );
-    }
-    if (studyConfig.trackers.userInputTracker.enabled) {
-      await trackers.registerTrackerCallback(
-        TrackerType.UserInputTracker,
-        UserInputTrackerService.handleUserInputEvent
-      );
-    }
-    if (studyConfig.trackers.experienceSamplingTracker.enabled) {
-      await trackers.registerTrackerCallback(TrackerType.ExperienceSamplingTracker);
-    }
-
-    if (studyConfig.displayDaysParticipated) {
-      await trackers.registerTrackerCallback(TrackerType.DaysParticipatedTracker);
+      if (studyConfig.displayDaysParticipated) {
+        await trackers.registerTrackerCallback(TrackerType.DaysParticipatedTracker);
+      }
     }
 
     const settings: Settings = await Settings.findOneBy({ onlyOneEntityShouldExist: 1 });

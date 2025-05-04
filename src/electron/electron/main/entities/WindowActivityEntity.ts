@@ -23,4 +23,7 @@ export class WindowActivityEntity extends BaseTrackedEntity {
 
   @Column('datetime', { nullable: false })
   ts: Date;
+
+  @Column('integer', { nullable: true })
+  durationInSeconds: number | null;
 }
