@@ -1,3 +1,4 @@
+import langsmith
 from dotenv import load_dotenv
 from langchain import hub
 from langchain_core.output_parsers import PydanticToolsParser

@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import uuid
 from datetime import datetime, UTC
 from pathlib import Path
 from typing import Dict, List
@@ -16,11 +17,13 @@ from chains.answer_chain import generate_answer, general_answer
 from chains.query_chain import write_query, execute_query
 from chains.table_chain import get_tables
 from chains.init_chain import classify_question, generate_title
+from db_modification import update_sessions_from_usage_data
 from schemas import State
 from llm_registry import LLMRegistry
 
 APPDATA_PATH = Path(os.getenv("APPDATA", Path.home()))
 CHECKPOINT_DB_PATH = APPDATA_PATH / "personal-analytics" / "chat_checkpoints.db"
+DB_PATH = APPDATA_PATH / "personal-analytics" / "database.sqlite"
 
 graph: CompiledGraph
 
@@ -93,6 +96,9 @@ def initialize():
             last_activity TEXT
         )
     """)
+
+    update_sessions_from_usage_data(DB_PATH)
+
 
 
 def get_next_thread_id() -> str:
@@ -265,6 +271,20 @@ def run_chat(question: str, chat_id: str) -> Dict:
         """, (chat_id, now))
     conn.commit()
     conn.close()
+
+    msg_id = str(uuid.uuid4())
+    state["messages"].append(AIMessage(
+        content=state["answer"],
+        additional_kwargs={
+            "meta": {
+                "tables": state["tables"],
+                "activities": state["activities"],
+                "query": state["query"],
+                "result": state["result"]
+            },
+            "message_id": msg_id
+        }
+    ))
 
     return {
         "answer": final_state["answer"],
