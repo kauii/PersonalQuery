@@ -3,7 +3,7 @@ from typing import List, Literal
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict, Annotated
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import BaseMessage, FunctionMessage
 
 
 class State(TypedDict):
@@ -12,10 +12,12 @@ class State(TypedDict):
     question: str
     title_exist: bool
     branch: str
+    current_time: str
     tables: List[str]
     activities: List[str]
     query: str
-    result: str
+    raw_result: str
+    result: List[str]
     answer: str
 
 
@@ -37,3 +39,7 @@ class Activity(BaseModel):
 class QuestionType(TypedDict):
     """Type of question asked from the user."""
     questionType: Annotated[str, ..., "Type of question in order to decide what actions to take."]
+
+class Question(TypedDict):
+    """Type of question asked from the user."""
+    question: Annotated[str, ..., "Enriched question by adding time context."]

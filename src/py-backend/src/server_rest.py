@@ -1,9 +1,10 @@
 from fastapi import FastAPI, Request
-from langchain.memory import ConversationBufferMemory
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from chat_engine import run_chat, get_next_thread_id, get_chat_history, list_chats, initialize
+from chat_engine import run_chat, get_chat_history, initialize
+from helper.chat_utils import get_next_thread_id, list_chats
+
 
 initialize()
 app = FastAPI()

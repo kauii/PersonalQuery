@@ -1,6 +1,6 @@
-import langsmith
 from dotenv import load_dotenv
 from langchain import hub
+from langchain_core.messages import FunctionMessage
 from langchain_core.output_parsers import PydanticToolsParser
 from langchain_openai import ChatOpenAI
 

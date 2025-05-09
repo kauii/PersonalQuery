@@ -1,8 +1,10 @@
 from dotenv import load_dotenv
 from langchain import hub
+from langchain_core.messages import FunctionMessage
 from langchain_core.runnables import RunnableLambda
 from langchain_openai import ChatOpenAI
 from database import get_db
+from helper.result_utils import format_result_as_markdown, split_result
 from llm_registry import LLMRegistry
 from schemas import State, QueryOutput
 
@@ -14,6 +16,7 @@ esr_template = hub.pull("experience_sampling_responses")
 ud_template = hub.pull("usage_data")
 ui_template = hub.pull("user_input")
 wa_template = hub.pull("window_activity")
+session_template = hub.pull("session")
 
 
 def get_custom_table_info(state: State):
@@ -24,10 +27,8 @@ def get_custom_table_info(state: State):
         template = None
         db._sample_rows_in_table_info = False
         template_input = {"table_info": db.get_table_info([table])}
-        if table == "experience_sampling_responses":
-            template = esr_template
-        elif table == "usage_data":
-            template = ud_template
+        if table == "session":
+            template = session_template
         elif table == "user_input":
             template = ui_template
         elif table == "window_activity":
@@ -46,7 +47,7 @@ def query_chain(llm: ChatOpenAI):
     return (
             RunnableLambda(lambda state: main_template.invoke({
                 "dialect": db.dialect,
-                "top_k": 30,
+                "top_k": 150,
                 "table_info": get_custom_table_info(state) if state["tables"] else db.get_table_info(),
                 "input": state["question"]
             }))
@@ -64,23 +65,9 @@ def write_query(state: State) -> State:
 
 
 def execute_query(state: State) -> State:
-    result = db._execute(state["query"])
+    raw_result = db._execute(state["query"])
+    state["raw_result"] = format_result_as_markdown(raw_result)
 
-    state["result"] = format_result_as_markdown(result)
+    chunks = split_result(raw_result)
+    state["result"] = [format_result_as_markdown(chunk) for chunk in chunks]
     return state
-
-
-def format_result_as_markdown(result: list[dict]) -> str:
-    if not result:
-        return "No results found"
-
-    headers = list(result[0].keys())
-    headers = ["#"] + headers  # Add row number header
-
-    lines = ["| " + " | ".join(headers) + " |", "| " + " | ".join(["---"] * len(headers)) + " |"]
-
-    for idx, row in enumerate(result, start=1):
-        row_values = [str(idx)] + [str(value) for value in row.values()]
-        lines.append("| " + " | ".join(row_values) + " |")
-
-    return "\n".join(lines)

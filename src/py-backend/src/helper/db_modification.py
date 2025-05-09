@@ -119,11 +119,19 @@ def add_window_activity_durations(db_path):
     try:
         cur.execute('ALTER TABLE window_activity ADD COLUMN durationInSeconds INTEGER')
     except sqlite3.OperationalError:
-        pass  # Column already exists
+        pass  # Column exists
 
-    # Fetch window activations sorted by timestamp
+    # Clear existing values
+    cur.execute('UPDATE window_activity SET durationInSeconds = NULL')
+
+    # Load window activity
     cur.execute('SELECT rowid, ts FROM window_activity ORDER BY ts ASC')
     rows = cur.fetchall()
+
+    # Load APP_QUITs
+    cur.execute('SELECT created_at FROM usage_data WHERE type = "APP_QUIT"')
+    app_quits = [datetime.fromisoformat(row[0]) for row in cur.fetchall()]
+    app_quit_by_day = {q.date(): q for q in app_quits}
 
     for i in range(len(rows) - 1):
         current_rowid, current_ts = rows[i]
@@ -131,13 +139,25 @@ def add_window_activity_durations(db_path):
 
         start_dt = datetime.fromisoformat(current_ts)
         end_dt = datetime.fromisoformat(next_ts)
-        duration = int((end_dt - start_dt).total_seconds())
 
-        cur.execute('''
-            UPDATE window_activity
-            SET durationInSeconds = ?
-            WHERE rowid = ?
-        ''', (duration, current_rowid))
+        # If next window is on next day, check for APP_QUIT cutoff
+        if start_dt.date() != end_dt.date():
+            quit_dt = app_quit_by_day.get(start_dt.date())
+            if quit_dt and start_dt < quit_dt < end_dt:
+                end_dt = quit_dt  # override end time
+
+        duration = int((end_dt - start_dt).total_seconds())
+        cur.execute('UPDATE window_activity SET durationInSeconds = ? WHERE rowid = ?', (duration, current_rowid))
+
+    # Handle last row with APP_QUIT if available
+    if rows:
+        last_rowid, last_ts = rows[-1]
+        start_dt = datetime.fromisoformat(last_ts)
+        quit_dt = app_quit_by_day.get(start_dt.date())
+
+        if quit_dt and quit_dt > start_dt:
+            duration = int((quit_dt - start_dt).total_seconds())
+            cur.execute('UPDATE window_activity SET durationInSeconds = ? WHERE rowid = ?', (duration, last_rowid))
 
     conn.commit()
     conn.close()

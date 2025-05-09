@@ -3,6 +3,7 @@ from langchain import hub
 from langchain_core.output_parsers.openai_tools import PydanticToolsParser
 from langchain_core.runnables import RunnableSequence
 from langchain_openai import ChatOpenAI
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, FunctionMessage
 
 from llm_registry import LLMRegistry
 from schemas import Table, State
