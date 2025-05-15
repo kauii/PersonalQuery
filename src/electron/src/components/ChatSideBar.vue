@@ -12,6 +12,10 @@ const chats = ref<ChatEntry[]>([]);
 const openMenuId = ref<string | null>(null);
 const router = useRouter();
 
+const renameChatId = ref<string | null>(null);
+const renameTitle = ref("");
+
+
 function toggleMenu(chatId: string) {
   openMenuId.value = openMenuId.value === chatId ? null : chatId;
 }
@@ -41,24 +45,52 @@ async function createNewChat() {
 async function deleteChat(chatId: string) {
   closeMenu();
   if (!confirm('Are you sure you want to delete this chat?')) return;
-  await fetch(`http://localhost:8000/chats/${chatId}`, { method: 'DELETE' });
-  await fetchChats();
-  if (chatId === router.currentRoute.value.params.chatId) {
-    router.push('/');
+
+  try {
+    const response = await fetch(`http://localhost:8000/chats/${chatId}`, {
+      method: 'DELETE',
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      console.error('Failed to delete chat:', result.error || response.statusText);
+      alert('Failed to delete chat.');
+      return;
+    }
+
+    await fetchChats();
+    if (chatId === router.currentRoute.value.params.chatId) {
+      router.push('/');
+    }
+  } catch (error) {
+    console.error('Error deleting chat:', error);
+    alert('Error deleting chat.');
   }
 }
 
-async function renameChat(chatId: string) {
-  closeMenu();
-  const newTitle = prompt('Enter new title for the chat:');
-  if (!newTitle?.trim()) return;
-  await fetch(`http://localhost:8000/chats/${chatId}`, {
-    method: 'PATCH',
+
+function startRename(chatId: string, currentTitle: string) {
+  renameChatId.value = chatId;
+  renameTitle.value = currentTitle;
+}
+
+async function submitRename() {
+  if (!renameChatId.value || !renameTitle.value.trim()) return;
+  await fetch(`http://localhost:8000/chats/${renameChatId.value}/rename`, {
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: newTitle.trim() })
+    body: JSON.stringify({ new_title: renameTitle.value.trim() }),
   });
+  renameChatId.value = null;
+  renameTitle.value = "";
   await fetchChats();
 }
+
+function cancelRename() {
+  renameChatId.value = null;
+  renameTitle.value = "";
+}
+
 
 // Global click listener to close dropdown
 function handleClickOutside(event: MouseEvent) {
@@ -135,7 +167,7 @@ onBeforeUnmount(() => {
           >
             <button
               class="block w-full px-3 py-2 text-left hover:bg-base-200"
-              @click="renameChat(chat.id)"
+              @click="startRename(chat.id, chat.title)"
             >
               Rename
             </button>
@@ -149,8 +181,26 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </div>
+
+    <!-- Rename Modal -->
+    <dialog v-if="renameChatId" class="modal" open>
+      <form @submit.prevent="submitRename" class="modal-box">
+        <h3 class="font-bold text-lg">Rename Chat</h3>
+        <input
+          v-model="renameTitle"
+          placeholder="New title"
+          class="input input-bordered w-full my-4"
+          required
+        />
+        <div class="modal-action">
+          <button type="submit" class="btn btn-primary">Rename</button>
+          <button type="button" @click="cancelRename" class="btn">Cancel</button>
+        </div>
+      </form>
+    </dialog>
   </div>
 </template>
+
 
 
 

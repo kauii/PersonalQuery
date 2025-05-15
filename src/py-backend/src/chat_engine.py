@@ -28,10 +28,11 @@ CHECKPOINT_DB_PATH = APPDATA_PATH / "personal-analytics" / "chat_checkpoints.db"
 DB_PATH = APPDATA_PATH / "personal-analytics" / "database.sqlite"
 
 graph: CompiledGraph
+checkpointer: SqliteSaver
 
 
 def initialize():
-    global graph
+    global graph, checkpointer
 
     load_dotenv()
 
@@ -205,3 +206,40 @@ def get_chat_history(chat_id: str) -> Dict:
             print(msg)
 
     return {"messages": result}
+
+
+def delete_chat(chat_id: str):
+    try:
+        conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM checkpoints WHERE thread_id = ?", (chat_id,))
+        cursor.execute("DELETE FROM writes WHERE thread_id = ?", (chat_id,))
+
+        cursor.execute("DELETE FROM chat_metadata WHERE thread_id = ?", (chat_id,))
+
+        conn.commit()
+        conn.close()
+
+        return {"status": "Chat successfully deleted"}
+    except Exception as e:
+        return {"error": f"An error occurred: {str(e)}"}
+
+
+def rename_chat(chat_id: str, new_title: str):
+    try:
+        conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            UPDATE chat_metadata
+            SET title = ?
+            WHERE thread_id = ?
+        """, (new_title.strip(), chat_id))
+
+        conn.commit()
+        conn.close()
+
+        return {"status": f"Chat title updated to '{new_title.strip()}'"}
+    except Exception as e:
+        return {"error": f"An error occurred: {str(e)}"}

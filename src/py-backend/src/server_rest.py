@@ -1,10 +1,9 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Body
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from chat_engine import run_chat, get_chat_history, initialize
+from chat_engine import run_chat, get_chat_history, initialize, delete_chat, rename_chat
 from helper.chat_utils import get_next_thread_id, list_chats
-
 
 initialize()
 app = FastAPI()
@@ -48,3 +47,14 @@ def get_all_chats():
 def get_chat(chat_id: str):
     """Return message history for a given chat."""
     return get_chat_history(chat_id)
+
+
+@app.delete("/chats/{chat_id}")
+def remove_chat(chat_id: str):
+    return delete_chat(chat_id)
+
+
+@app.put("/chats/{chat_id}/rename")
+def rename_chat_endpoint(chat_id: str, new_title: str = Body(..., embed=True)):
+    """Rename an existing chat by its chat_id."""
+    return rename_chat(chat_id, new_title)
