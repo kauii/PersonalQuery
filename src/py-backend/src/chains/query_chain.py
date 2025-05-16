@@ -1,6 +1,5 @@
 from dotenv import load_dotenv
 from langchain import hub
-from langchain_core.messages import FunctionMessage
 from langchain_core.runnables import RunnableLambda
 from langchain_openai import ChatOpenAI
 from database import get_db
@@ -12,34 +11,34 @@ load_dotenv()
 db = get_db()
 
 main_template = hub.pull("sql-query-system-prompt")
-esr_template = hub.pull("experience_sampling_responses")
-ud_template = hub.pull("usage_data")
 ui_template = hub.pull("user_input")
 wa_template = hub.pull("window_activity")
 session_template = hub.pull("session")
 
 
-def get_custom_table_info(state: State):
+def get_custom_table_info(state: State) -> str:
     prompt_parts = []
     tables = state["tables"]
     activities = state.get("activities", None)
+
     for table in tables:
-        template = None
-        db._sample_rows_in_table_info = False
-        template_input = {"table_info": db.get_table_info([table])}
         if table == "session":
-            template = session_template
+            prompt_parts.append(session_template.messages[0].prompt.template)
+
         elif table == "user_input":
-            template = ui_template
+            prompt_parts.append(ui_template.messages[0].prompt.template)
+
         elif table == "window_activity":
-            template = wa_template
-            if activities:
-                template_input["activities"] = activities
-            else:
-                template_input["activities"] = ""
-        if template:
-            result = template.invoke(template_input)
-            prompt_parts.append(result.to_string())
+            template_input = {
+                "activities": (
+                    f"-FILTER FOR THESE ACTIVITIES: [{', '.join(activities)}]"
+                    if activities else
+                    "-DO NOT FILTER ACTIVITIES"
+                )
+            }
+            prompt_value = wa_template.invoke(template_input)
+            prompt_parts.append(prompt_value.messages[0].content)
+
     return "\n\n---\n\n".join(prompt_parts)
 
 

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain import hub
+from langchain_core.messages import SystemMessage
 from langchain_core.output_parsers.openai_tools import PydanticToolsParser
 from langchain_core.prompt_values import ChatPromptValue
 from langchain_openai import ChatOpenAI
@@ -28,11 +29,27 @@ def classify_chain(llm: ChatOpenAI):
     )
 
 
-def classify_question(state: State) -> State:
+def classify_question_old(state: State) -> State:
     """For LangGraph Orchestration"""
     llm = LLMRegistry.get("openai")
     branch = classify_chain(llm).invoke(state)
     state['branch'] = branch
+    return state
+
+
+def classify_question(state: State) -> State:
+    llm = LLMRegistry.get("openai")
+    prompt = prompt_template.invoke(state['question'])
+    system_prompt = prompt.messages[0].content
+
+    temp_messages = state['messages'].copy()
+    if temp_messages and isinstance(temp_messages[0], SystemMessage):
+        temp_messages[0] = SystemMessage(content=system_prompt)
+    else:
+        temp_messages.insert(0, SystemMessage(content=system_prompt))
+
+    parsed = llm.with_structured_output(QuestionType).invoke(temp_messages)
+    state['branch'] = parsed["questionType"]
     return state
 
 
@@ -44,7 +61,7 @@ def strip_outer_quotes(text: str) -> str:
 
 def generate_title(state: State) -> State:
     """For LangGraph Orchestration"""
-    llm = LLMRegistry.get("openai")
+    llm = LLMRegistry.get("openai-high-temp")
     prompt: ChatPromptValue = prompt_template_title.invoke({
         "question": state["question"],
         "max_characters": 15

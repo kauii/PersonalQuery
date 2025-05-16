@@ -43,6 +43,13 @@ def initialize():
         api_key=os.getenv("MY_OPENAI_API_KEY")
     )
 
+    llm_openai_high_temp = ChatOpenAI(
+        model="gpt-4o",
+        temperature=1.0,
+        base_url="https://api.openai.com/v1",
+        api_key=os.getenv("MY_OPENAI_API_KEY")
+    )
+
     llm_llama31 = ChatOpenAI(
         model="llama31instruct",
         temperature=0.0,
@@ -51,6 +58,7 @@ def initialize():
     )
 
     LLMRegistry.register("openai", llm_openai)
+    LLMRegistry.register("openai-high-temp", llm_openai_high_temp)
     LLMRegistry.register("llama31", llm_llama31)
 
     graph_builder = StateGraph(State)

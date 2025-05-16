@@ -1,25 +1,19 @@
 
 from dotenv import load_dotenv
+from langchain import hub
 from langchain_core.messages import SystemMessage
 
 from llm_registry import LLMRegistry
 from schemas import State, Question
 
 load_dotenv()
+prompt_template = hub.pull("give_context")
 
 
 def give_context(state: State) -> State:
-    system_prompt = (
-        "You are a helpful assistant that rewrites the user's most recent question to make it self-contained and unambiguous,"
-        "but only if necessary.\n\n"
-        "Use the previous messages for context.\n"
-        "- Resolve vague time expressions using the current time (ISO-format): {current_time}\n"
-        "- Clarify pronouns or references like 'that', 'them', or 'on that day'\n"
-        "- Only rewrite the most recent question, and only as much as needed\n"
-        "- Do not change meaning or tone\n"
-        "- If the question is already clear and fully self-contained, leave it unchanged\n"
-        "- Return only the (rewritten) question"
-    ).format(current_time=state['current_time'])
+    prompt = prompt_template.invoke(state['current_time'])
+    system_prompt = prompt.messages[0].content
+
     llm = LLMRegistry.get("openai")
     messages = state['messages']
     temp_messages = messages.copy()

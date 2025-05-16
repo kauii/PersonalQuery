@@ -2,7 +2,7 @@ import uuid
 
 from dotenv import load_dotenv
 from langchain import hub
-from langchain_core.messages import AIMessage, AIMessageChunk
+from langchain_core.messages import AIMessage, AIMessageChunk, SystemMessage
 from langchain_core.prompt_values import ChatPromptValue
 
 from llm_registry import LLMRegistry
@@ -81,8 +81,18 @@ def generate_answer(state: State) -> State:
 
 
 def general_answer(state: State) -> State:
-    llm = LLMRegistry.get("openai")
+    prompt = prompt_template_general.invoke(state['current_time'])
+    system_prompt = prompt.messages[0].content
+
+    llm = LLMRegistry.get("openai-high-temp")
     messages = state["messages"]
+    temp_messages = messages.copy()
+
+    if temp_messages and isinstance(temp_messages[0], SystemMessage):
+        temp_messages[0] = SystemMessage(content=system_prompt)
+    else:
+        temp_messages.insert(0, SystemMessage(content=system_prompt))
+
     response = llm.invoke(messages).content
     state["answer"] = response
     messages.append(AIMessage(content=response))
