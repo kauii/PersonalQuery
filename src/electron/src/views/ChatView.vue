@@ -57,15 +57,23 @@ watch(
   }
 );
 
-watch(wsMessages, async () => {
-  await nextTick();
-  bottomAnchor.value?.scrollIntoView({ behavior: 'smooth' });
-}, {deep: true});
+watch(
+  wsMessages,
+  async () => {
+    await nextTick();
+    bottomAnchor.value?.scrollIntoView({ behavior: 'smooth' });
+  },
+  { deep: true }
+);
 
-watch(steps, async () => {
-  await nextTick();
-  bottomAnchor.value?.scrollIntoView({ behavior: 'smooth' });
-}, {deep: true});
+watch(
+  steps,
+  async () => {
+    await nextTick();
+    bottomAnchor.value?.scrollIntoView({ behavior: 'smooth' });
+  },
+  { deep: true }
+);
 
 watch(steps, () => {
   console.log('Live steps:', steps.value);
@@ -102,16 +110,16 @@ onFinalResponse.value = async () => {
       <div v-for="(msg, index) in wsMessages" :key="index" class="w-full">
         <!-- User message -->
         <div v-if="msg.role === 'human'" class="chat chat-end mb-4">
-          <div class="chat-bubble chat-bubble-primary max-w-[80%] text-base px-4 py-2">
+          <div class="chat-bubble chat-bubble-primary max-w-[80%] px-4 py-2 text-base">
             <div v-html="formatMessage(msg.content)" class="prose prose-base text-black" />
           </div>
         </div>
         <!-- Loading steps appear directly after the last user message -->
         <div
           v-if="index === wsMessages.length - 1 && msg.role === 'human' && steps.length"
-          class="w-full flex justify-center px-4 mb-4"
+          class="mb-4 flex w-full justify-center px-4"
         >
-          <div class="prose prose-sm text-gray-400 text-left max-w-4xl w-full mx-auto px-2">
+          <div class="prose prose-sm mx-auto w-full max-w-4xl px-2 text-left text-gray-400">
             <p v-if="steps.length" class="flex items-center gap-2">
               <span class="loading loading-spinner loading-sm"></span>
               {{ steps[steps.length - 1].replaceAll('_', ' ') }}
@@ -119,12 +127,14 @@ onFinalResponse.value = async () => {
           </div>
         </div>
         <!-- AI message -->
-        <div v-else-if="msg.role === 'ai'" class="w-full flex justify-center px-4 mb-4">
-          <div class="prose prose-lg text-base-content text-left max-w-4xl w-full mx-auto border border-white/10 rounded-lg px-6 py-5">
+        <div v-else-if="msg.role === 'ai'" class="mb-4 flex w-full justify-center px-4">
+          <div
+            class="prose prose-lg mx-auto w-full max-w-4xl rounded-lg border border-white/10 px-6 py-5 text-left text-base-content"
+          >
             <div v-html="formatMessage(msg.content)" />
             <button
               v-if="msg.meta"
-              class="btn btn-circle btn-ghost btn-xs text-info mt-2 float-right"
+              class="btn btn-circle btn-ghost btn-xs float-right mt-2 text-info"
               @click="openMetaModal(msg.meta)"
               title="View details"
             >
@@ -133,7 +143,6 @@ onFinalResponse.value = async () => {
           </div>
         </div>
       </div>
-
 
       <div ref="bottomAnchor"></div>
     </div>
