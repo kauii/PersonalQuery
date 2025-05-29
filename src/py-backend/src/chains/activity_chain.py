@@ -4,6 +4,7 @@ from langchain_core.messages import FunctionMessage
 from langchain_core.output_parsers import PydanticToolsParser
 from langchain_openai import ChatOpenAI
 
+from helper.ws_utils import emit_step
 from llm_registry import LLMRegistry
 from schemas import Activity, State
 

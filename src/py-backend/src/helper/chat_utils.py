@@ -105,3 +105,23 @@ def title_exists(thread_id: str) -> bool:
         return False
 
     return bool(row[0].strip())
+
+
+def give_correct_step(current_node: str, branch: str, title_exist: bool = False) -> str:
+    """Predict the next logical step in the workflow based on branch and current node."""
+    if branch != "data_query":
+        # For general_qa and other branches, we default to general_answer
+        return "generate_answer"
+
+    # Step prediction map for data_query
+    data_query_map = {
+        "classify_question": "generate_title" if not title_exist else "give_context",
+        "generate_title": "give_context",
+        "give_context": "get_tables",
+        "get_tables": "extract_activities",
+        "extract_activities": "write_query",
+        "write_query": "execute_query",
+        "execute_query": "generate_answer"
+    }
+
+    return data_query_map.get(current_node, current_node)  # fallback to current if unknown

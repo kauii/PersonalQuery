@@ -1,4 +1,4 @@
-from typing import List, Literal
+from typing import List, Literal, Optional, Callable
 
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field

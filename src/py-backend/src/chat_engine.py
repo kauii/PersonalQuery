@@ -18,7 +18,7 @@ from chains.query_chain import write_query, execute_query
 from chains.table_chain import get_tables
 from chains.init_chain import classify_question, generate_title
 from chains.context_chain import give_context
-from helper.chat_utils import title_exists
+from helper.chat_utils import title_exists, give_correct_step
 from helper.db_modification import update_sessions_from_usage_data, add_window_activity_durations
 from schemas import State
 from llm_registry import LLMRegistry
@@ -113,8 +113,19 @@ def initialize():
     add_window_activity_durations(DB_PATH)
 
 
-def run_chat(question: str, chat_id: str) -> Dict:
+async def run_chat(question: str, chat_id: str, on_update=None) -> Dict:
     """Main chat execution."""
+    now = datetime.now(UTC).isoformat()
+    conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
+    cursor = conn.cursor()
+    cursor.execute("""
+                INSERT INTO chat_metadata (thread_id, last_activity)
+                VALUES (?, ?)
+                ON CONFLICT(thread_id) DO UPDATE SET last_activity = excluded.last_activity
+            """, (chat_id, now))
+    conn.commit()
+    conn.close()
+
     config = {"configurable": {"thread_id": chat_id}}
 
     try:
@@ -154,43 +165,23 @@ def run_chat(question: str, chat_id: str) -> Dict:
         "query": "",
         "raw_result": "",
         "result": [],
-        "answer": "",
+        "answer": ""
     }
+    if on_update:
+        await on_update({"type": "step", "node": "classify question"})
 
-    final_state = graph.invoke(state, config)
+    for step in graph.stream(state, config, stream_mode="updates"):
+        node_name = list(step.keys())[0]
+        step_state = step[node_name]
+        branch = step_state.get("branch")
+        if on_update:
+            next_step = give_correct_step(node_name, branch, step_state.get('title_exist'))
+            await on_update({"type": "step", "node": next_step})
 
-    now = datetime.now(UTC).isoformat()
-    conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
-    cursor = conn.cursor()
-    cursor.execute("""
-            INSERT INTO chat_metadata (thread_id, last_activity)
-            VALUES (?, ?)
-            ON CONFLICT(thread_id) DO UPDATE SET last_activity = excluded.last_activity
-        """, (chat_id, now))
-    conn.commit()
-    conn.close()
+    answer = state['messages'][-1]
+    final_msg = {"role": "ai", "content": answer.content, "additional_kwargs": answer.additional_kwargs}
 
-    msg_id = str(uuid.uuid4())
-    state["messages"].append(AIMessage(
-        content=state["answer"],
-        additional_kwargs={
-            "meta": {
-                "tables": state["tables"],
-                "activities": state["activities"],
-                "query": state["query"],
-                "result": state["result"]
-            },
-            "message_id": msg_id
-        }
-    ))
-
-    return {
-        "answer": final_state["answer"],
-        "tables": final_state["tables"],
-        "activities": final_state["activities"],
-        "query": final_state["query"],
-        "result": final_state["raw_result"],
-    }
+    return final_msg
 
 
 def get_chat_history(chat_id: str) -> Dict:
@@ -204,12 +195,11 @@ def get_chat_history(chat_id: str) -> Dict:
     result = []
     for msg in messages:
         if isinstance(msg, HumanMessage):
-            result.append({"type": "human", "content": msg.content})
+            result.append({"role": "human", "content": msg.content})
         elif isinstance(msg, AIMessage):
-            print({"type": "ai", "content": msg.content, "additional_kwargs": msg.additional_kwargs})
-            result.append({"type": "ai", "content": msg.content, "additional_kwargs": msg.additional_kwargs})
+            result.append({"role": "ai", "content": msg.content, "additional_kwargs": msg.additional_kwargs})
         elif isinstance(msg, SystemMessage):
-            result.append({"type": "system", "content": msg.content})
+            result.append({"role": "system", "content": msg.content})
         elif isinstance(msg, AIMessageChunk):
             print(msg)
 

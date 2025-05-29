@@ -4,6 +4,7 @@ from langchain_core.runnables import RunnableLambda
 from langchain_openai import ChatOpenAI
 from database import get_db
 from helper.result_utils import format_result_as_markdown, split_result
+from helper.ws_utils import emit_step
 from llm_registry import LLMRegistry
 from schemas import State, QueryOutput
 

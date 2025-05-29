@@ -13,8 +13,7 @@ const openMenuId = ref<string | null>(null);
 const router = useRouter();
 
 const renameChatId = ref<string | null>(null);
-const renameTitle = ref("");
-
+const renameTitle = ref('');
 
 function toggleMenu(chatId: string) {
   openMenuId.value = openMenuId.value === chatId ? null : chatId;
@@ -24,14 +23,18 @@ function closeMenu() {
   openMenuId.value = null;
 }
 
-async function fetchChats() {
-  const res = await fetch('http://localhost:8000/chats');
-  const data = await res.json();
-  chats.value = data.chats.sort((a: ChatEntry, b: ChatEntry) => {
+function sortChatsByLastActivity(chatsToSort: ChatEntry[]): ChatEntry[] {
+  return chatsToSort.sort((a: ChatEntry, b: ChatEntry) => {
     if (!a.last_activity) return 1;
     if (!b.last_activity) return -1;
     return new Date(b.last_activity).getTime() - new Date(a.last_activity).getTime();
   });
+}
+
+async function fetchChats() {
+  const res = await fetch('http://localhost:8000/chats');
+  const data = await res.json();
+  chats.value = sortChatsByLastActivity(data.chats);
 }
 
 async function createNewChat() {
@@ -39,7 +42,10 @@ async function createNewChat() {
     method: 'POST'
   });
   const data = await res.json();
-  router.push(`/chat/${data.chat_id}`);
+
+  await router.push(`/chat/${data.chat_id}`);
+
+  await fetchChats();
 }
 
 async function deleteChat(chatId: string) {
@@ -48,7 +54,7 @@ async function deleteChat(chatId: string) {
 
   try {
     const response = await fetch(`http://localhost:8000/chats/${chatId}`, {
-      method: 'DELETE',
+      method: 'DELETE'
     });
 
     const result = await response.json();
@@ -68,7 +74,6 @@ async function deleteChat(chatId: string) {
   }
 }
 
-
 function startRename(chatId: string, currentTitle: string) {
   renameChatId.value = chatId;
   renameTitle.value = currentTitle;
@@ -79,18 +84,17 @@ async function submitRename() {
   await fetch(`http://localhost:8000/chats/${renameChatId.value}/rename`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ new_title: renameTitle.value.trim() }),
+    body: JSON.stringify({ new_title: renameTitle.value.trim() })
   });
   renameChatId.value = null;
-  renameTitle.value = "";
+  renameTitle.value = '';
   await fetchChats();
 }
 
 function cancelRename() {
   renameChatId.value = null;
-  renameTitle.value = "";
+  renameTitle.value = '';
 }
-
 
 // Global click listener to close dropdown
 function handleClickOutside(event: MouseEvent) {
@@ -98,7 +102,7 @@ function handleClickOutside(event: MouseEvent) {
   const dropdowns = document.querySelectorAll('.chat-dropdown');
 
   let clickedInsideDropdown = false;
-  dropdowns.forEach(dropdown => {
+  dropdowns.forEach((dropdown) => {
     if (dropdown.contains(target)) {
       clickedInsideDropdown = true;
     }
@@ -112,24 +116,22 @@ function handleClickOutside(event: MouseEvent) {
 onMounted(() => {
   fetchChats();
   document.addEventListener('click', handleClickOutside);
+  window.addEventListener('refreshSidebar', (e: any) => {
+    chats.value = sortChatsByLastActivity(e.detail);
+  });
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside);
 });
-
 </script>
 
 <template>
   <div class="flex h-screen w-64 flex-col gap-2 bg-base-200 p-4">
     <button class="btn btn-primary mb-2 w-full" @click="createNewChat">+ New Chat</button>
 
-    <div class="flex-1 overflow-y-auto space-y-2">
-      <div
-        v-for="chat in chats"
-        :key="chat.id"
-        class="relative group flex items-center"
-      >
+    <div class="flex-1 space-y-2 overflow-y-auto">
+      <div v-for="chat in chats" :key="chat.id" class="group relative flex items-center">
         <!-- Chat title button -->
         <router-link
           :to="`/chat/${chat.id}`"
@@ -152,7 +154,7 @@ onBeforeUnmount(() => {
         >
           <!-- Kebab button -->
           <button
-            class="btn btn-xs btn-ghost"
+            class="btn btn-ghost btn-xs"
             @click.stop="toggleMenu(chat.id)"
             title="Chat options"
           >
@@ -162,7 +164,7 @@ onBeforeUnmount(() => {
           <!-- Dropdown -->
           <div
             v-if="openMenuId === chat.id"
-            class="chat-dropdown absolute right-0 mt-1 w-28 rounded border border-base-300 bg-base-100 shadow z-10"
+            class="chat-dropdown absolute right-0 z-10 mt-1 w-28 rounded border border-base-300 bg-base-100 shadow"
             @click.stop
           >
             <button
@@ -172,7 +174,7 @@ onBeforeUnmount(() => {
               Rename
             </button>
             <button
-              class="block w-full px-3 py-2 text-left hover:bg-base-200 text-error"
+              class="block w-full px-3 py-2 text-left text-error hover:bg-base-200"
               @click="deleteChat(chat.id)"
             >
               Delete
@@ -185,11 +187,11 @@ onBeforeUnmount(() => {
     <!-- Rename Modal -->
     <dialog v-if="renameChatId" class="modal" open>
       <form @submit.prevent="submitRename" class="modal-box">
-        <h3 class="font-bold text-lg">Rename Chat</h3>
+        <h3 class="text-lg font-bold">Rename Chat</h3>
         <input
           v-model="renameTitle"
           placeholder="New title"
-          class="input input-bordered w-full my-4"
+          class="input input-bordered my-4 w-full"
           required
         />
         <div class="modal-action">
@@ -200,11 +202,5 @@ onBeforeUnmount(() => {
     </dialog>
   </div>
 </template>
-
-
-
-
-
-
 
 <style scoped lang="less"></style>

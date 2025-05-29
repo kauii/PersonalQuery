@@ -9,6 +9,7 @@ from langchain_core.output_parsers.openai_tools import PydanticToolsParser
 from langchain_core.prompt_values import ChatPromptValue
 from langchain_openai import ChatOpenAI
 
+from helper.ws_utils import emit_step
 from llm_registry import LLMRegistry
 from schemas import QuestionType, State
 
@@ -75,9 +76,10 @@ def generate_title(state: State) -> State:
         conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
         cursor = conn.cursor()
         cursor.execute("""
-                    INSERT OR REPLACE INTO chat_metadata (thread_id, title)
-                    VALUES (?, ?)
-                """, (thread_id, title.strip()))
+                UPDATE chat_metadata
+                SET title = ?
+                WHERE thread_id = ?
+            """, (title.strip(), thread_id))
         conn.commit()
         conn.close()
     except Exception as e:

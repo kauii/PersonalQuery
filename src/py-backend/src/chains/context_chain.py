@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from langchain import hub
 from langchain_core.messages import SystemMessage
 
+from helper.ws_utils import emit_step
 from llm_registry import LLMRegistry
 from schemas import State, Question
 
@@ -24,7 +25,6 @@ def give_context(state: State) -> State:
         temp_messages.insert(0, SystemMessage(content=system_prompt))
 
     enriched_question = llm.with_structured_output(Question).invoke(temp_messages)
-    print(enriched_question)
     state['question'] = enriched_question
 
     return state
