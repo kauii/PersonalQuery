@@ -21,6 +21,9 @@ import { Settings } from './entities/Settings';
 import { UsageDataService } from './services/UsageDataService';
 import { UsageDataEventType } from '../enums/UsageDataEventType.enum';
 import { WorkScheduleService } from './services/WorkScheduleService';
+import { spawn } from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -76,6 +79,43 @@ const LOG = getMainLogger('Main');
 
 app.whenReady().then(async () => {
   app.setAppUserModelId('ch.ifi.hasel.personal-analytics');
+  const isDev = !app.isPackaged;
+
+  if (!isDev) {
+    try {
+      const backendExePath = path.join(process.resourcesPath, 'personalquery-backend.exe');
+      LOG.info('[DEBUG] isDev = false');
+      LOG.info('[DEBUG] Resolved backend exe path:', backendExePath);
+
+      const exists = fs.existsSync(backendExePath);
+      LOG.info('[DEBUG] File exists:', exists);
+
+      if (!exists) {
+        throw new Error(`[personalquery-backend.exe] NOT FOUND at: ${backendExePath}`);
+      }
+
+      const backend = spawn(backendExePath, {
+        windowsHide: true,
+        cwd: path.dirname(backendExePath)
+      });
+
+      backend.stdout.on('data', (data) => {
+        LOG.info(`[Backend STDOUT] ${data}`);
+      });
+
+      backend.stderr.on('data', (data) => {
+        LOG.error(`[Backend STDERR] ${data}`);
+      });
+
+      backend.on('error', (err) => {
+        LOG.error(`[Backend ERROR EVENT] ${err}`);
+      });
+
+      LOG.info('✅ Attempted to launch backend.');
+    } catch (err) {
+      LOG.error('❌ Failed to launch backend:', err);
+    }
+  }
 
   if (!is.dev) {
     app.setLoginItemSettings({

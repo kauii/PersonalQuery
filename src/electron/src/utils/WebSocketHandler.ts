@@ -1,10 +1,10 @@
 import { ref } from 'vue';
 
 export interface Meta {
-  tables?: string[];
-  activities?: string[];
-  query?: string;
-  result?: string;
+  tables: string[];
+  activities: string[];
+  query: string;
+  result: string;
 }
 
 export type Role = 'system' | 'ai' | 'human';
@@ -49,7 +49,7 @@ export function useChatWebSocket() {
         steps.value = [];
         approvalRequest.value = {
           data: data.data,
-          chat_id: data.chat_id,
+          chat_id: data.chat_id
         };
       }
     };
@@ -59,7 +59,11 @@ export function useChatWebSocket() {
     };
   };
 
-  const send = (question: string, chatId: string, options?: { top_k?: number, autoApprove?: boolean}) => {
+  const send = (
+    question: string,
+    chatId: string,
+    options?: { top_k?: number; autoApprove?: boolean }
+  ) => {
     steps.value = [];
     messages.value.push({ role: 'human', content: question });
     socket.value?.send(
@@ -67,7 +71,9 @@ export function useChatWebSocket() {
         question,
         chat_id: chatId,
         top_k: options?.top_k ?? 150,
-        auto_approve: options?.autoApprove ?? false}));
+        auto_approve: options?.autoApprove ?? false
+      })
+    );
   };
   return {
     connect,

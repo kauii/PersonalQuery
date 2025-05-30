@@ -1,12 +1,32 @@
 module.exports = {
-  productName: 'PersonalAnalytics',
-  appId: 'ch.ifi.hasel.personal-analytics',
+  productName: 'PersonalQuery',
+  appId: 'ch.ifi.hasel.personalquery',
   asar: true,
-  asarUnpack: ['node_modules/better_sqlite3/**', 'node_modules/sqlite3/**'],
+  asarUnpack: [
+    'node_modules/better_sqlite3/**',
+    'node_modules/sqlite3/**',
+    'node_modules/**/*.node',
+    'personalquery-backend.exe'
+  ],
   directories: {
     output: 'release/${version}'
   },
-  files: ['dist', 'dist-electron', '!node_modules/uiohook-napi/build/**'],
+  files: [
+    'dist',
+    'dist-electron',
+    {
+      from: '../py-backend/dist/personalquery-backend.exe',
+      to: 'personalquery-backend.exe'
+    },
+    '!node_modules/uiohook-napi/build/**'
+  ],
+  extraResources: [
+    {
+      from: '../py-backend/dist/personalquery-backend.exe',
+      to: 'personalquery-backend.exe',
+      filter: ['**/*']
+    }
+  ],
   publish: {
     provider: 'github',
     owner: 'HASEL-UZH',
@@ -15,7 +35,6 @@ module.exports = {
   afterSign: 'scripts/notarize.cjs',
   mac: {
     artifactName: '${productName}-${version}-${arch}.${ext}',
-    asarUnpack: ['node_modules/**/*.node'],
     entitlements: 'build/entitlements.mac.plist',
     entitlementsInherit: 'build/entitlements.mac.plist',
     hardenedRuntime: true,
@@ -42,6 +61,7 @@ module.exports = {
   win: {
     target: ['nsis'],
     verifyUpdateCodeSignature: false,
+    artifactName: '${productName}-${version}-Windows.${ext}',
     azureSignOptions: {
       publisherName: `${process.env.AZURE_PUBLISHER_NAME}`,
       endpoint: `${process.env.AZURE_ENDPOINT}`,

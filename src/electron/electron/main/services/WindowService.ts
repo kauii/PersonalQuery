@@ -214,9 +214,7 @@ export class WindowService {
     this.chatWindow.on('close', () => {
       this.chatWindow = null;
     });
-    if (is.dev) {
-      this.chatWindow.webContents.openDevTools();
-    }
+    this.chatWindow.webContents.openDevTools();
     this.chatWindow.show();
   }
 

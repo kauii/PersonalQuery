@@ -27,7 +27,12 @@ function formatMessage(message: string) {
 }
 
 const metaDialog = ref<HTMLDialogElement | null>(null);
-const currentMeta = ref<Meta | null>(null);
+const currentMeta = ref<Meta>({
+  tables: [],
+  activities: [],
+  query: '',
+  result: ''
+});
 const bottomAnchor = ref<HTMLElement | null>(null);
 const autoApprove = ref(false);
 const topK = ref(150);
@@ -208,7 +213,7 @@ function respondToApproval(approval: boolean) {
         <!-- AI message -->
         <div v-else-if="msg.role === 'ai'" class="mb-4 flex w-full justify-center px-4">
           <div
-            class="prose prose-lg mx-auto w-full max-w-4xl rounded-lg border border-white/10 px-6 py-5 text-left text-base-content"
+            class="prose prose-base mx-auto w-full max-w-4xl rounded-lg border border-white/10 px-6 py-5 text-left text-base-content"
           >
             <div v-html="formatMessage(msg.content)" />
             <button
@@ -251,8 +256,7 @@ function respondToApproval(approval: boolean) {
     </div>
 
     <form @submit.prevent="sendMessage" class="w-full">
-      <div class="rounded border border-base-300 bg-base-200 p-4 space-y-4">
-
+      <div class="space-y-4 rounded border border-base-300 bg-base-200 p-4">
         <!-- ✅ Full-width input -->
         <input
           v-model="input"
@@ -260,17 +264,13 @@ function respondToApproval(approval: boolean) {
           placeholder="Type your message..."
         />
 
-        <div class="flex flex-wrap items-start gap-6 w-full">
+        <div class="flex w-full flex-wrap items-start gap-6">
           <!-- ✅ Left side group: Toggle + Slider -->
-          <div class="flex gap-6 items-start">
+          <div class="flex items-start gap-6">
             <!-- Auto Approve -->
             <div class="flex flex-col items-start">
-              <input
-                type="checkbox"
-                class="toggle toggle-primary"
-                v-model="autoApprove"
-              />
-              <span class="label-text text-xs mt-1">Auto Approve</span>
+              <input type="checkbox" class="toggle toggle-primary" v-model="autoApprove" />
+              <span class="label-text mt-1 text-xs">Auto Approve</span>
             </div>
 
             <!-- Slider -->
@@ -285,7 +285,7 @@ function respondToApproval(approval: boolean) {
                 class="range"
                 style="width: 250px"
               />
-              <span class="label-text text-xs mt-1">Limit Results to: {{ topK }}</span>
+              <span class="label-text mt-1 text-xs">Limit Results to: {{ topK }}</span>
             </div>
           </div>
 
@@ -294,18 +294,8 @@ function respondToApproval(approval: boolean) {
             <button class="btn btn-primary" type="submit">Send</button>
           </div>
         </div>
-
-
-
-
-
-
       </div>
     </form>
-
-
-
-
 
     <!-- Info Modal -->
     <dialog ref="metaDialog" class="modal">
@@ -320,16 +310,16 @@ function respondToApproval(approval: boolean) {
         <div v-if="currentMeta" class="space-y-4">
           <div>
             <p class="font-semibold">Tables:</p>
-            <p class="text-sm">{{ currentMeta.tables?.join(', ') }}</p>
+            <p class="text-sm">{{ currentMeta.tables?.join(', ') ?? '' }}</p>
           </div>
           <div>
             <p class="font-semibold">Activities:</p>
-            <p class="text-sm">{{ currentMeta.activities?.join(', ') }}</p>
+            <p class="text-sm">{{ currentMeta.activities?.join(', ') ?? '' }}</p>
           </div>
           <div>
             <p class="font-semibold">Query:</p>
             <pre class="overflow-x-auto whitespace-pre-wrap rounded bg-base-200 p-2 text-sm"
-              >{{ cleanQuery(currentMeta.query) }}
+              >{{ cleanQuery(currentMeta.query) ?? '' }}
 </pre
             >
           </div>
@@ -338,7 +328,7 @@ function respondToApproval(approval: boolean) {
             <div
               class="prose prose-sm max-w-none overflow-x-auto overflow-y-auto rounded bg-base-200 p-4 text-sm"
               style="max-height: 300px"
-              v-html="formatMessage(currentMeta.result)"
+              v-html="formatMessage(currentMeta.result ?? '')"
             ></div>
           </div>
         </div>
