@@ -19,6 +19,7 @@ class State(TypedDict):
     raw_result: str
     result: List[str]
     answer: str
+    top_k: int
 
 
 class QueryOutput(TypedDict):

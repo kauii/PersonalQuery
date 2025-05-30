@@ -29,6 +29,9 @@ function formatMessage(message: string) {
 const metaDialog = ref<HTMLDialogElement | null>(null);
 const currentMeta = ref<Meta | null>(null);
 const bottomAnchor = ref<HTMLElement | null>(null);
+const autoApprove = ref(false);
+const topK = ref(150);
+const STORAGE_KEY = 'chat_settings';
 
 function openMetaModal(meta: Meta) {
   currentMeta.value = meta;
@@ -58,6 +61,29 @@ async function fetchChatHistory() {
 onMounted(() => {
   connect();
   fetchChatHistory();
+});
+
+onMounted(() => {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (typeof parsed.autoApprove === 'boolean') autoApprove.value = parsed.autoApprove;
+      if (typeof parsed.topK === 'number') topK.value = parsed.topK;
+    } catch (e) {
+      console.warn('Invalid chat_settings in localStorage');
+    }
+  }
+});
+
+watch([autoApprove, topK], () => {
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      autoApprove: autoApprove.value,
+      topK: topK.value
+    })
+  );
 });
 
 const needsApproval = ref(false);
@@ -101,7 +127,10 @@ function sendMessage() {
   if (!input.value.trim()) return;
   const userMessage = input.value;
   input.value = '';
-  send(userMessage, chatId.value);
+  send(userMessage, chatId.value, {
+    top_k: topK.value,
+    autoApprove: autoApprove.value
+  });
 }
 
 function cleanQuery(query: string): string {
@@ -221,14 +250,62 @@ function respondToApproval(approval: boolean) {
       <div ref="bottomAnchor"></div>
     </div>
 
-    <form @submit.prevent="sendMessage" class="mt-4 flex items-center gap-2">
-      <input
-        v-model="input"
-        class="input input-bordered w-full"
-        placeholder="Type your message..."
-      />
-      <button class="btn btn-primary" type="submit">Send</button>
+    <form @submit.prevent="sendMessage" class="w-full">
+      <div class="rounded border border-base-300 bg-base-200 p-4 space-y-4">
+
+        <!-- ✅ Full-width input -->
+        <input
+          v-model="input"
+          class="input input-bordered w-full"
+          placeholder="Type your message..."
+        />
+
+        <div class="flex flex-wrap items-start gap-6 w-full">
+          <!-- ✅ Left side group: Toggle + Slider -->
+          <div class="flex gap-6 items-start">
+            <!-- Auto Approve -->
+            <div class="flex flex-col items-start">
+              <input
+                type="checkbox"
+                class="toggle toggle-primary"
+                v-model="autoApprove"
+              />
+              <span class="label-text text-xs mt-1">Auto Approve</span>
+            </div>
+
+            <!-- Slider -->
+            <div class="flex flex-col items-start">
+              <input
+                id="top_k"
+                type="range"
+                min="0"
+                max="1500"
+                step="50"
+                v-model.number="topK"
+                class="range"
+                style="width: 250px"
+              />
+              <span class="label-text text-xs mt-1">Limit Results to: {{ topK }}</span>
+            </div>
+          </div>
+
+          <!-- ✅ Send button on far right -->
+          <div class="ml-auto self-start">
+            <button class="btn btn-primary" type="submit">Send</button>
+          </div>
+        </div>
+
+
+
+
+
+
+      </div>
     </form>
+
+
+
+
 
     <!-- Info Modal -->
     <dialog ref="metaDialog" class="modal">

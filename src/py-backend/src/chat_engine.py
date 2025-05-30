@@ -114,7 +114,7 @@ def initialize():
     add_window_activity_durations(DB_PATH)
 
 
-async def run_chat(question: str, chat_id: str, on_update=None) -> Dict:
+async def run_chat(question: str, chat_id: str, top_k=150, auto_approve=False, on_update=None) -> Dict:
     """Main chat execution."""
     now = datetime.now(UTC).isoformat()
     conn = sqlite3.connect(str(CHECKPOINT_DB_PATH), check_same_thread=False)
@@ -128,16 +128,14 @@ async def run_chat(question: str, chat_id: str, on_update=None) -> Dict:
     conn.close()
 
     config = {"configurable": {"thread_id": chat_id}}
+    current_time = datetime.now().isoformat()
 
     try:
         snapshot = graph.get_state(config)
         messages = snapshot.values.get("messages", [])
-        metadata = snapshot.values.get("metadata", [])
     except Exception:
         messages = []
-        metadata = []
 
-    current_time = datetime.now().isoformat()
 
     if not any(isinstance(msg, SystemMessage) for msg in messages):
         messages.insert(0, SystemMessage(
@@ -166,12 +164,16 @@ async def run_chat(question: str, chat_id: str, on_update=None) -> Dict:
         "query": "",
         "raw_result": "",
         "result": [],
-        "answer": ""
+        "answer": "",
+        "top_k": top_k
     }
+
+    interrupt_nodes = [] if auto_approve else ["generate_answer"]
+
     if on_update:
         await on_update({"type": "step", "node": "classify question"})
 
-    for step in graph.stream(state, config, stream_mode="updates", interrupt_before=["generate_answer"]):
+    for step in graph.stream(state, config, stream_mode="updates", interrupt_before=interrupt_nodes):
         node_name = list(step.keys())[0]
         if node_name == "execute_query":
             data = step[node_name].get("raw_result")
@@ -185,7 +187,7 @@ async def run_chat(question: str, chat_id: str, on_update=None) -> Dict:
     answer = state['messages'][-1]
     final_msg = {"role": "ai", "content": answer.content, "additional_kwargs": answer.additional_kwargs}
 
-    if branch == 'data_query':
+    if branch == 'data_query' and not auto_approve:
         if on_update:
             await on_update({
                 "type": "approval",

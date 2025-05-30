@@ -1,5 +1,4 @@
 import { ref } from 'vue';
-import { c } from 'vite/dist/node/types.d-aGj9QkWt';
 
 export interface Meta {
   tables?: string[];
@@ -50,7 +49,7 @@ export function useChatWebSocket() {
         steps.value = [];
         approvalRequest.value = {
           data: data.data,
-          chat_id: data.chat_id
+          chat_id: data.chat_id,
         };
       }
     };
@@ -60,10 +59,15 @@ export function useChatWebSocket() {
     };
   };
 
-  const send = (question: string, chatId: string) => {
+  const send = (question: string, chatId: string, options?: { top_k?: number, autoApprove?: boolean}) => {
     steps.value = [];
     messages.value.push({ role: 'human', content: question });
-    socket.value?.send(JSON.stringify({ question, chat_id: chatId }));
+    socket.value?.send(
+      JSON.stringify({
+        question,
+        chat_id: chatId,
+        top_k: options?.top_k ?? 150,
+        auto_approve: options?.autoApprove ?? false}));
   };
   return {
     connect,

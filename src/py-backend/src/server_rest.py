@@ -23,21 +23,19 @@ async def websocket_chat(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_json()
+            print(data)
 
-
-            if data.get("type") == "approval_response":
-                print("HELLO HAPPY UREPPI YORUPPIKU NE")
-                resolve_approval(data["chat_id"], data)
-                continue
-
-            # Normal question processing
             question = data.get("question", "")
             chat_id = data.get("chat_id", "1")
+            top_k = data.get("top_k", 150)
+            auto_approve = data.get("auto_approve", False)
+            print(top_k)
+            print(auto_approve)
 
             async def on_update(update: dict):
                 await websocket.send_json(update)
 
-            msg = await run_chat(question, chat_id, on_update=on_update)
+            msg = await run_chat(question, chat_id, top_k, auto_approve, on_update=on_update)
             if msg:
                 await websocket.send_json(msg)
 
