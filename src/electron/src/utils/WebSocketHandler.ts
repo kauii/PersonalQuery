@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { c } from 'vite/dist/node/types.d-aGj9QkWt';
 
 export interface Meta {
   tables?: string[];
@@ -21,6 +22,7 @@ export function useChatWebSocket() {
   const steps = ref<string[]>([]);
   const isConnected = ref(false);
   const onFinalResponse = ref<(() => void) | null>(null);
+  const approvalRequest = ref<{ data: string; chat_id: string } | null>(null);
 
   const connect = () => {
     socket.value = new WebSocket('ws://localhost:8000/ws');
@@ -44,6 +46,12 @@ export function useChatWebSocket() {
           onFinalResponse.value();
         }
         steps.value = [];
+      } else if (data.type === 'approval') {
+        steps.value = [];
+        approvalRequest.value = {
+          data: data.data,
+          chat_id: data.chat_id
+        };
       }
     };
 
@@ -57,5 +65,13 @@ export function useChatWebSocket() {
     messages.value.push({ role: 'human', content: question });
     socket.value?.send(JSON.stringify({ question, chat_id: chatId }));
   };
-  return { connect, send, messages, steps, isConnected, onFinalResponse };
+  return {
+    connect,
+    send,
+    messages,
+    steps,
+    isConnected,
+    onFinalResponse,
+    approvalRequest
+  };
 }

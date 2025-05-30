@@ -8,7 +8,19 @@ const route = useRoute();
 const chatId = ref(route.params.chatId as string);
 const input = ref('');
 
-const { connect, send, messages: wsMessages, steps, onFinalResponse } = useChatWebSocket();
+const {
+  connect,
+  send,
+  messages: wsMessages,
+  steps,
+  onFinalResponse,
+  approvalRequest
+} = useChatWebSocket();
+
+interface Approval {
+  chat_id: string;
+  data: string;
+}
 
 function formatMessage(message: string) {
   return marked.parse(message);
@@ -48,6 +60,17 @@ onMounted(() => {
   fetchChatHistory();
 });
 
+const needsApproval = ref(false);
+const approvalData = ref<Approval | null>(null);
+
+watch(approvalRequest, () => {
+  if (approvalRequest.value) {
+    needsApproval.value = true;
+    approvalData.value = approvalRequest.value;
+  }
+});
+
+
 watch(
   () => route.params.chatId,
   (newChatId) => {
@@ -75,10 +98,6 @@ watch(
   { deep: true }
 );
 
-watch(steps, () => {
-  console.log('Live steps:', steps.value);
-});
-
 function sendMessage() {
   if (!input.value.trim()) return;
   const userMessage = input.value;
@@ -95,13 +114,44 @@ function cleanQuery(query: string): string {
 }
 
 onFinalResponse.value = async () => {
-  console.log('Message complete – refreshing sidebar...');
   await fetch(`http://localhost:8000/chats`)
     .then((res) => res.json())
     .then((data) => {
       window.dispatchEvent(new CustomEvent('refreshSidebar', { detail: data.chats }));
     });
 };
+
+const sendApproval = async (chatId: string, approval: boolean) => {
+  try {
+    const res = await fetch("http://localhost:8000/approval", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, approval })
+    });
+
+    const result = await res.json();
+
+    if (result && result.role === "ai" && result.content) {
+      wsMessages.value.push({
+        role: result.role,
+        content: result.content,
+        meta: result.additional_kwargs?.meta
+      });
+    }
+  } catch (err) {
+    console.error("Failed to send approval:", err);
+  }
+};
+
+
+
+function respondToApproval(approval: boolean) {
+  if (approvalData.value?.chat_id) {
+    sendApproval(approvalData.value.chat_id, approval);
+  }
+  needsApproval.value = false;
+  approvalData.value = null;
+}
 </script>
 
 <template>
@@ -142,6 +192,32 @@ onFinalResponse.value = async () => {
             </button>
           </div>
         </div>
+        <!-- Approval Request -->
+        <div
+          v-if="needsApproval && index === wsMessages.length - 1"
+          class="mb-4 flex w-full justify-center px-4"
+        >
+          <div
+            class="prose prose-base mx-auto w-full max-w-4xl rounded-lg border border-warning bg-warning/10 px-6 py-5 text-left text-base-content"
+          >
+            <p class="mb-2 font-semibold">
+              The assistant generated the following result based on your data. <br />
+              Do you want to send this to OpenAI for further processing?
+            </p>
+
+            <div
+              class="overflow-y-auto rounded bg-base-200 p-4 text-sm"
+              style="max-height: 300px"
+              v-html="formatMessage(approvalData?.data || 'No preview available.')"
+            ></div>
+
+            <div class="mt-4 flex justify-end gap-4">
+              <button class="btn btn-outline btn-sm" @click="respondToApproval(false)">No</button>
+              <button class="btn btn-primary btn-sm" @click="respondToApproval(true)">Yes</button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <div ref="bottomAnchor"></div>

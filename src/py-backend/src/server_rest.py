@@ -1,10 +1,9 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Body
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from chat_engine import run_chat, get_chat_history, initialize, delete_chat, rename_chat
+from chat_engine import run_chat, get_chat_history, initialize, delete_chat, rename_chat, resume_stream
 from helper.chat_utils import get_next_thread_id, list_chats
-from helper.ws_utils import set_current_websocket
+from helper.ws_utils import resolve_approval
 
 initialize()
 app = FastAPI()
@@ -17,18 +16,21 @@ app.add_middleware(
 )
 
 
-class ChatRequest(BaseModel):
-    question: str
-
-
 @app.websocket("/ws")
 async def websocket_chat(websocket: WebSocket):
     await websocket.accept()
-    set_current_websocket(websocket)
 
     try:
         while True:
             data = await websocket.receive_json()
+
+
+            if data.get("type") == "approval_response":
+                print("HELLO HAPPY UREPPI YORUPPIKU NE")
+                resolve_approval(data["chat_id"], data)
+                continue
+
+            # Normal question processing
             question = data.get("question", "")
             chat_id = data.get("chat_id", "1")
 
@@ -36,11 +38,12 @@ async def websocket_chat(websocket: WebSocket):
                 await websocket.send_json(update)
 
             msg = await run_chat(question, chat_id, on_update=on_update)
-
-            await websocket.send_json(msg)
+            if msg:
+                await websocket.send_json(msg)
 
     except WebSocketDisconnect:
         print("Client disconnected")
+
 
 @app.post("/chats")
 def create_chat():
@@ -70,3 +73,21 @@ def remove_chat(chat_id: str):
 def rename_chat_endpoint(chat_id: str, new_title: str = Body(..., embed=True)):
     """Rename an existing chat by its chat_id."""
     return rename_chat(chat_id, new_title)
+
+
+@app.post("/approval")
+async def handle_approval(request: Request):
+    payload = await request.json()
+    chat_id = payload.get("chat_id")
+    approval = payload.get("approval")
+
+    print(f"✅ Approval received: chat_id={chat_id}, approval={approval}")
+
+    if not isinstance(approval, bool):
+        return {"status": "error", "message": "Missing or invalid 'approval' boolean."}
+
+    if approval:
+        msg = resume_stream(chat_id)
+        return msg
+    else:
+        return {}

@@ -1,6 +1,10 @@
 import math
 
 
+def escape_md_cell(value: str) -> str:
+    return f"`{value.replace('`', '')}`" if "|" in value or "\n" in value else value
+
+
 def format_result_as_markdown(result: list[dict]) -> str:
     if not result:
         return "No results found"
@@ -11,13 +15,13 @@ def format_result_as_markdown(result: list[dict]) -> str:
     lines = ["| " + " | ".join(headers) + " |", "| " + " | ".join(["---"] * len(headers)) + " |"]
 
     for idx, row in enumerate(result, start=1):
-        row_values = [str(idx)] + [str(value) for value in row.values()]
+        row_values = [str(idx)] + [escape_md_cell(str(value)) for value in row.values()]
         lines.append("| " + " | ".join(row_values) + " |")
 
     return "\n".join(lines)
 
 
-def split_result(data: list[dict], max_chunk_size: int = 151) -> list[list[dict]]:
+def split_result(data: list[dict], max_chunk_size: int = 5000) -> list[list[dict]]:
     """
     Splits data into evenly sized chunks where each chunk has <= max_entries.
     """

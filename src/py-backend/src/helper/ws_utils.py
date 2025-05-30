@@ -1,24 +1,15 @@
-from fastapi import WebSocket
-import contextvars
+from asyncio import Future
 
-# Context variable to hold the active WebSocket per request context
-_current_websocket: contextvars.ContextVar[WebSocket | None] = contextvars.ContextVar(
-    "current_websocket", default=None
-)
+approval_futures = {}
 
 
-def set_current_websocket(ws: WebSocket) -> None:
-    """
-    Call this once at the start of each WebSocket session (e.g., in the FastAPI handler)
-    """
-    _current_websocket.set(ws)
+async def wait_for_approval(chat_id: str) -> dict:
+    future = Future()
+    approval_futures[chat_id] = future
+    return await future
 
 
-async def emit_step(step: str) -> None:
-    """
-    Emits a step name to the frontend via WebSocket (e.g., for progress feedback).
-    Should be awaited at the BEGINNING of each node function.
-    """
-    ws = _current_websocket.get()
-    if ws:
-        await ws.send_json({"type": "step", "node": step})
+def resolve_approval(chat_id: str, data: dict):
+    if chat_id in approval_futures:
+        approval_futures[chat_id].set_result(data)
+        del approval_futures[chat_id]

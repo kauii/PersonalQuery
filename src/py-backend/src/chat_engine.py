@@ -20,6 +20,7 @@ from chains.init_chain import classify_question, generate_title
 from chains.context_chain import give_context
 from helper.chat_utils import title_exists, give_correct_step
 from helper.db_modification import update_sessions_from_usage_data, add_window_activity_durations
+from helper.ws_utils import wait_for_approval
 from schemas import State
 from llm_registry import LLMRegistry
 
@@ -170,18 +171,50 @@ async def run_chat(question: str, chat_id: str, on_update=None) -> Dict:
     if on_update:
         await on_update({"type": "step", "node": "classify question"})
 
-    for step in graph.stream(state, config, stream_mode="updates"):
+    for step in graph.stream(state, config, stream_mode="updates", interrupt_before=["generate_answer"]):
         node_name = list(step.keys())[0]
-        step_state = step[node_name]
-        branch = step_state.get("branch")
-        if on_update:
-            next_step = give_correct_step(node_name, branch, step_state.get('title_exist'))
-            await on_update({"type": "step", "node": next_step})
+        if node_name == "execute_query":
+            data = step[node_name].get("raw_result")
+        if node_name != "__interrupt__":
+            step_state = step[node_name]
+            branch = step_state.get("branch")
+            if on_update:
+                next_step = give_correct_step(node_name, branch, step_state.get('title_exist'))
+                await on_update({"type": "step", "node": next_step})
 
     answer = state['messages'][-1]
     final_msg = {"role": "ai", "content": answer.content, "additional_kwargs": answer.additional_kwargs}
 
+    if branch == 'data_query':
+        if on_update:
+            await on_update({
+                "type": "approval",
+                "data": data,
+                "chat_id": chat_id
+            })
+            return {}
+
     return final_msg
+
+
+def resume_stream(chat_id: str) -> Dict:
+    config = {"configurable": {"thread_id": chat_id}}
+    final_msg = {}
+
+    try:
+        for step in graph.stream(None, config, stream_mode="updates"):
+            node_name = list(step.keys())[0]
+            step_state = step[node_name]
+            answer = step_state.get("messages")[-1]
+            final_msg = {
+                "role": "ai",
+                "content": answer.content,
+                "additional_kwargs": answer.additional_kwargs
+            }
+        return final_msg
+    except Exception as e:
+        print(f"[resume_stream] Failed for chat_id={chat_id}: {e}")
+        return {"error": "resume failed"}
 
 
 def get_chat_history(chat_id: str) -> Dict:

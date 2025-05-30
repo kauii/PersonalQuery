@@ -4,7 +4,6 @@ from langchain_core.runnables import RunnableLambda
 from langchain_openai import ChatOpenAI
 from database import get_db
 from helper.result_utils import format_result_as_markdown, split_result
-from helper.ws_utils import emit_step
 from llm_registry import LLMRegistry
 from schemas import State, QueryOutput
 
@@ -47,7 +46,7 @@ def query_chain(llm: ChatOpenAI):
     return (
             RunnableLambda(lambda state: main_template.invoke({
                 "dialect": db.dialect,
-                "top_k": 150,
+                "top_k": 500,
                 "table_info": get_custom_table_info(state) if state["tables"] else db.get_table_info(),
                 "input": state["question"]
             }))
