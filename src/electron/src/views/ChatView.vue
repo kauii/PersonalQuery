@@ -70,7 +70,6 @@ watch(approvalRequest, () => {
   }
 });
 
-
 watch(
   () => route.params.chatId,
   (newChatId) => {
@@ -123,15 +122,15 @@ onFinalResponse.value = async () => {
 
 const sendApproval = async (chatId: string, approval: boolean) => {
   try {
-    const res = await fetch("http://localhost:8000/approval", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch('http://localhost:8000/approval', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, approval })
     });
 
     const result = await res.json();
 
-    if (result && result.role === "ai" && result.content) {
+    if (result && result.role === 'ai' && result.content) {
       wsMessages.value.push({
         role: result.role,
         content: result.content,
@@ -139,11 +138,9 @@ const sendApproval = async (chatId: string, approval: boolean) => {
       });
     }
   } catch (err) {
-    console.error("Failed to send approval:", err);
+    console.error('Failed to send approval:', err);
   }
 };
-
-
 
 function respondToApproval(approval: boolean) {
   if (approvalData.value?.chat_id) {
@@ -151,6 +148,9 @@ function respondToApproval(approval: boolean) {
   }
   needsApproval.value = false;
   approvalData.value = null;
+  if (approval) {
+    steps.value = ['generate answer'];
+  }
 }
 </script>
 
@@ -201,8 +201,7 @@ function respondToApproval(approval: boolean) {
             class="prose prose-base mx-auto w-full max-w-4xl rounded-lg border border-warning bg-warning/10 px-6 py-5 text-left text-base-content"
           >
             <p class="mb-2 font-semibold">
-              The assistant generated the following result based on your data. <br />
-              Do you want to send this to OpenAI for further processing?
+              Do you approve to send this to OpenAI for further processing?
             </p>
 
             <div
@@ -217,7 +216,6 @@ function respondToApproval(approval: boolean) {
             </div>
           </div>
         </div>
-
       </div>
 
       <div ref="bottomAnchor"></div>
