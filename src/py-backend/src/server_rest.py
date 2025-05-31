@@ -1,9 +1,9 @@
+import logging
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from chat_engine import run_chat, get_chat_history, initialize, delete_chat, rename_chat, resume_stream
 from helper.chat_utils import get_next_thread_id, list_chats
-from helper.ws_utils import resolve_approval
 
 initialize()
 app = FastAPI()
@@ -23,14 +23,11 @@ async def websocket_chat(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_json()
-            print(data)
 
             question = data.get("question", "")
             chat_id = data.get("chat_id", "1")
             top_k = data.get("top_k", 150)
             auto_approve = data.get("auto_approve", False)
-            print(top_k)
-            print(auto_approve)
 
             async def on_update(update: dict):
                 await websocket.send_json(update)
@@ -40,7 +37,7 @@ async def websocket_chat(websocket: WebSocket):
                 await websocket.send_json(msg)
 
     except WebSocketDisconnect:
-        print("Client disconnected")
+        logging.info("Client disconnected")
 
 
 @app.post("/chats")
@@ -78,8 +75,6 @@ async def handle_approval(request: Request):
     payload = await request.json()
     chat_id = payload.get("chat_id")
     approval = payload.get("approval")
-
-    print(f"✅ Approval received: chat_id={chat_id}, approval={approval}")
 
     if not isinstance(approval, bool):
         return {"status": "error", "message": "Missing or invalid 'approval' boolean."}

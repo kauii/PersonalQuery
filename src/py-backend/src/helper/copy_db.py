@@ -1,12 +1,11 @@
 import sqlite3
 import shutil
 
-from dotenv import load_dotenv
 from langchain import hub
-from langchain_community.utilities import SQLDatabase
 from langchain_core.prompts import ChatPromptTemplate
 
 from database import APPDATA_PATH
+from helper.env_loader import load_env
 
 DB_PATH = APPDATA_PATH / "personal-analytics" / "database.sqlite"
 BACKUP_PATH = APPDATA_PATH / "personal-analytics" / "database_cut_columns.sqlite"
@@ -72,6 +71,6 @@ def copy_db_and_trim_columns():
 #print(db.get_table_info())
 
 
-load_dotenv()
+load_env()
 ui_template: ChatPromptTemplate = hub.pull("user_input")
 print(type(ui_template.messages[0].prompt.template))

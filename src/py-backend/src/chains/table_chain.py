@@ -1,13 +1,13 @@
-from dotenv import load_dotenv
 from langchain import hub
 from langchain_core.output_parsers.openai_tools import PydanticToolsParser
 from langchain_core.runnables import RunnableSequence
 from langchain_openai import ChatOpenAI
 
+from helper.env_loader import load_env
 from llm_registry import LLMRegistry
 from schemas import Table, State
 
-load_dotenv()
+load_env()
 output_parser = PydanticToolsParser(tools=[Table])
 prompt_template = hub.pull("get_relevant_tables")
 

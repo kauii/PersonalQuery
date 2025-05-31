@@ -1,12 +1,12 @@
+import asyncio
+import logging
 import os
 import sqlite3
-import uuid
 from datetime import datetime, UTC
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
-from dotenv import load_dotenv
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, AIMessageChunk
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langgraph.graph import START, END, StateGraph
 from langgraph.checkpoint.sqlite import SqliteSaver
@@ -20,7 +20,7 @@ from chains.init_chain import classify_question, generate_title
 from chains.context_chain import give_context
 from helper.chat_utils import title_exists, give_correct_step
 from helper.db_modification import update_sessions_from_usage_data, add_window_activity_durations
-from helper.ws_utils import wait_for_approval
+from helper.env_loader import load_env
 from schemas import State
 from llm_registry import LLMRegistry
 
@@ -35,7 +35,7 @@ checkpointer: SqliteSaver
 def initialize():
     global graph, checkpointer
 
-    load_dotenv()
+    load_env()
 
     llm_openai = ChatOpenAI(
         model="gpt-4o",
@@ -183,6 +183,7 @@ async def run_chat(question: str, chat_id: str, top_k=150, auto_approve=False, o
             if on_update:
                 next_step = give_correct_step(node_name, branch, step_state.get('title_exist'))
                 await on_update({"type": "step", "node": next_step})
+                await asyncio.sleep(0)
 
     answer = state['messages'][-1]
     final_msg = {"role": "ai", "content": answer.content, "additional_kwargs": answer.additional_kwargs}
@@ -215,7 +216,7 @@ def resume_stream(chat_id: str) -> Dict:
             }
         return final_msg
     except Exception as e:
-        print(f"[resume_stream] Failed for chat_id={chat_id}: {e}")
+        logging.error(f"[resume_stream] Failed for chat_id={chat_id}: {e}")
         return {"error": "resume failed"}
 
 
@@ -235,8 +236,6 @@ def get_chat_history(chat_id: str) -> Dict:
             result.append({"role": "ai", "content": msg.content, "additional_kwargs": msg.additional_kwargs})
         elif isinstance(msg, SystemMessage):
             result.append({"role": "system", "content": msg.content})
-        elif isinstance(msg, AIMessageChunk):
-            print(msg)
 
     return {"messages": result}
 

@@ -52,6 +52,8 @@ const ipcHandler: IpcHandler = new IpcHandler(
   workScheduleService
 );
 const isDev = process.env.NODE_ENV === 'development';
+let backendProcess: ReturnType<typeof spawn> | null = null;
+
 
 // Disable GPU Acceleration for Windows 7
 if (release().startsWith('6.1')) {
@@ -94,20 +96,22 @@ app.whenReady().then(async () => {
         throw new Error(`[personalquery-backend.exe] NOT FOUND at: ${backendExePath}`);
       }
 
-      const backend = spawn(backendExePath, {
+      backendProcess = spawn(backendExePath, {
         windowsHide: true,
-        cwd: path.dirname(backendExePath)
+        cwd: path.dirname(backendExePath),
+        detached: false
       });
 
-      backend.stdout.on('data', (data) => {
+
+      backendProcess.stdout.on('data', (data) => {
         LOG.info(`[Backend STDOUT] ${data}`);
       });
 
-      backend.stderr.on('data', (data) => {
+      backendProcess.stderr.on('data', (data) => {
         LOG.error(`[Backend STDERR] ${data}`);
       });
 
-      backend.on('error', (err) => {
+      backendProcess.on('error', (err) => {
         LOG.error(`[Backend ERROR EVENT] ${err}`);
       });
 
@@ -258,6 +262,10 @@ app.whenReady().then(async () => {
 
 let isAppQuitting = false;
 app.on('before-quit', async (event): Promise<void> => {
+  if (backendProcess) {
+    LOG.info('Killing backend process...');
+    backendProcess.kill();
+  }
   LOG.info('app.on(before-quit) called');
   if (!isAppQuitting) {
     event.preventDefault();

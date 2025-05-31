@@ -1,11 +1,11 @@
-from dotenv import load_dotenv
 from langchain import hub
 from langchain_core.messages import SystemMessage
 
+from helper.env_loader import load_env
 from llm_registry import LLMRegistry
 from schemas import State, Question
 
-load_dotenv()
+load_env()
 prompt_template = hub.pull("give_context")
 
 

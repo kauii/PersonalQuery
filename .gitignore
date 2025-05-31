@@ -73,3 +73,16 @@ documentation/OCR Stuff/StandaloneOcr.rar
 /src/py-backend/src/chats/
 *.pyc
 /src/py-backend/src/thread_counter.json
+src/py-backend/personalquery-backend.spec
+src/py-backend/dist/personalquery-backend.exe
+src/py-backend/build/personalquery-backend/xref-personalquery-backend.html
+src/py-backend/build/personalquery-backend/warn-personalquery-backend.txt
+src/py-backend/build/personalquery-backend/PYZ-00.toc
+src/py-backend/build/personalquery-backend/PYZ-00.pyz
+src/py-backend/build/personalquery-backend/PKG-00.toc
+src/py-backend/build/personalquery-backend/personalquery-backend.pkg
+src/py-backend/build/personalquery-backend/EXE-00.toc
+src/py-backend/build/personalquery-backend/base_library.zip
+src/py-backend/build/personalquery-backend/Analysis-00.toc
+*.pyc
+/src/py-backend/src/__pycache__

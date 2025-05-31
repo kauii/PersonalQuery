@@ -1,19 +1,15 @@
-import uvicorn
-from server_rest import app
-import logging
-import sys
 import os
-from dotenv import load_dotenv
+import signal
+import sys
+import logging
+from server_rest import app
+import uvicorn
 
-base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-env_path = os.path.join(base_path, '.env')
+appdata_dir = os.getenv("APPDATA", os.getcwd())
+log_dir = os.path.join(appdata_dir, "personal-analytics", "logs")
+os.makedirs(log_dir, exist_ok=True)
 
-# Load .env from that path
-load_dotenv(dotenv_path=env_path)
-
-
-# Log to absolute path so we never get confused
-log_path = os.path.join(os.path.dirname(__file__), "backend.log")
+log_path = os.path.join(log_dir, "backend.log")
 
 logging.basicConfig(
     filename=log_path,
@@ -21,15 +17,54 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-# Also log unhandled exceptions
+
 def handle_exception(exc_type, exc_value, exc_traceback):
     logging.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
+
 sys.excepthook = handle_exception
 
-logging.info("✅ Backend script started")
 
+def handle_exit(signum, frame):
+    logging.info("🔚 Backend received exit signal")
+    sys.exit(0)
+
+
+signal.signal(signal.SIGTERM, handle_exit)
+signal.signal(signal.SIGINT, handle_exit)
 
 if __name__ == "__main__":
     logging.info("🚀 Uvicorn starting...")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(
+        app,
+        host="127.0.0.1",
+        port=8000,
+        log_config={
+            "version": 1,
+            "disable_existing_loggers": False,
+            "formatters": {
+                "default": {
+                    "()": "uvicorn.logging.DefaultFormatter",
+                    "fmt": "%(asctime)s - %(levelname)s - %(message)s",
+                    "datefmt": "%Y-%m-%d %H:%M:%S",
+                },
+            },
+            "handlers": {
+                "file": {
+                    "level": "DEBUG",
+                    "class": "logging.FileHandler",
+                    "filename": log_path,
+                    "formatter": "default",
+                },
+                "default": {
+                    "formatter": "default",
+                    "class": "logging.StreamHandler",
+                },
+            },
+            "loggers": {
+                "uvicorn": {"handlers": ["file"], "level": "DEBUG"},
+                "uvicorn.error": {"handlers": ["file"], "level": "DEBUG"},
+                "uvicorn.access": {"handlers": ["file"], "level": "DEBUG"},
+            },
+        }
+    )

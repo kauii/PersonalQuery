@@ -1,8 +1,10 @@
 from langchain import hub
 from dotenv import load_dotenv
+
+from helper.env_loader import load_env
 from schemas import State
 
-load_dotenv()
+load_env()
 
 prompt_template = hub.pull("get_relevant_tables")
 

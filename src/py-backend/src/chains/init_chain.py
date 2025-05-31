@@ -1,18 +1,19 @@
+import logging
 import os
 import sqlite3
 from pathlib import Path
 
-from dotenv import load_dotenv
 from langchain import hub
 from langchain_core.messages import SystemMessage
 from langchain_core.output_parsers.openai_tools import PydanticToolsParser
 from langchain_core.prompt_values import ChatPromptValue
 from langchain_openai import ChatOpenAI
 
+from helper.env_loader import load_env
 from llm_registry import LLMRegistry
 from schemas import QuestionType, State
 
-load_dotenv()
+load_env()
 output_parser = PydanticToolsParser(tools=[QuestionType])
 prompt_template = hub.pull("classify_question")
 prompt_template_title = hub.pull("generate_title")
@@ -82,6 +83,6 @@ def generate_title(state: State) -> State:
         conn.commit()
         conn.close()
     except Exception as e:
-        print(f"[generate_title] Failed to persist title for thread {thread_id}: {e}")
+        logging.error(f"[generate_title] Failed to persist title for thread {thread_id}: {e}")
 
     return state

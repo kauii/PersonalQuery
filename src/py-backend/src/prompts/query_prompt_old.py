@@ -1,10 +1,12 @@
 from langchain import hub
 from typing_extensions import Annotated, TypedDict
 from dotenv import load_dotenv
+
+from helper.env_loader import load_env
 from schemas import State
 from langchain_community.utilities import SQLDatabase
 
-load_dotenv()
+load_env()
 
 query_prompt_template = hub.pull("langchain-ai/sql-query-system-prompt")
 

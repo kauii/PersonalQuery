@@ -1,13 +1,13 @@
-from dotenv import load_dotenv
 from langchain import hub
 from langchain_core.messages import AIMessage, AIMessageChunk, SystemMessage
 from langchain_core.prompt_values import ChatPromptValue
 
+from helper.env_loader import load_env
 from llm_registry import LLMRegistry
 from schemas import State
 from langchain_openai import ChatOpenAI
 
-load_dotenv()
+load_env()
 prompt_template_partial = hub.pull("partial_answer")
 prompt_template_summarize = hub.pull("summarize_answers")
 

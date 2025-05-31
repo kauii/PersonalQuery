@@ -1,13 +1,13 @@
-from dotenv import load_dotenv
 from langchain import hub
 from langchain_core.runnables import RunnableLambda
 from langchain_openai import ChatOpenAI
 from database import get_db
+from helper.env_loader import load_env
 from helper.result_utils import format_result_as_markdown, split_result
 from llm_registry import LLMRegistry
 from schemas import State, QueryOutput
 
-load_dotenv()
+load_env()
 db = get_db()
 
 main_template = hub.pull("sql-query-system-prompt")
