@@ -32,7 +32,7 @@ export function useChatWebSocket() {
 
     socket.value.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log("Data received via WS:", data)
+      console.log('Data received via WS:', data);
 
       if (data.type === 'step') {
         steps.value = [data.node];

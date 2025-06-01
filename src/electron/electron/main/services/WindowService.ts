@@ -47,7 +47,13 @@ export class WindowService {
       }
     );
     if (!is.dev) {
-      Menu.setApplicationMenu(null);
+      const hiddenMenu = Menu.buildFromTemplate([
+        {
+          label: 'Tools',
+          submenu: [{ role: 'reload' }, { role: 'toggleDevTools' }]
+        }
+      ]);
+      Menu.setApplicationMenu(hiddenMenu);
     }
   }
 
