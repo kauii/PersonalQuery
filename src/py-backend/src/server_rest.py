@@ -1,12 +1,20 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
 from chat_engine import run_chat, get_chat_history, initialize, delete_chat, rename_chat, resume_stream
 from helper.chat_utils import get_next_thread_id, list_chats
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    logging.info("✅ Backend shutting down")
+
+
 initialize()
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

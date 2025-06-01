@@ -2,6 +2,9 @@ import os
 import signal
 import sys
 import logging
+
+from uvicorn import Config, Server
+
 from server_rest import app
 import uvicorn
 
@@ -26,7 +29,7 @@ sys.excepthook = handle_exception
 
 
 def handle_exit(signum, frame):
-    logging.info("🔚 Backend received exit signal")
+    logging.info("Backend received exit signal")
     sys.exit(0)
 
 
@@ -34,11 +37,14 @@ signal.signal(signal.SIGTERM, handle_exit)
 signal.signal(signal.SIGINT, handle_exit)
 
 if __name__ == "__main__":
-    logging.info("🚀 Uvicorn starting...")
-    uvicorn.run(
-        app,
+    logging.info("Uvicorn starting...")
+
+    config = Config(
+        app=app,
         host="127.0.0.1",
         port=8000,
+        loop="asyncio",
+        lifespan="on",
         log_config={
             "version": 1,
             "disable_existing_loggers": False,
@@ -68,3 +74,6 @@ if __name__ == "__main__":
             },
         }
     )
+
+    server = Server(config)
+    server.run()
