@@ -24,6 +24,7 @@ import { WorkScheduleService } from './services/WorkScheduleService';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
+import { SessionService } from './services/SessionService';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -40,6 +41,7 @@ const workScheduleService: WorkScheduleService = new WorkScheduleService();
 const appUpdaterService: AppUpdaterService = new AppUpdaterService();
 const windowService: WindowService = new WindowService(appUpdaterService);
 const experienceSamplingService: ExperienceSamplingService = new ExperienceSamplingService();
+const sessionService: SessionService = new SessionService();
 const trackers: TrackerService = new TrackerService(
   studyConfig.trackers,
   windowService,
@@ -49,11 +51,11 @@ const ipcHandler: IpcHandler = new IpcHandler(
   windowService,
   trackers,
   experienceSamplingService,
+  sessionService,
   workScheduleService
 );
 const isDev = process.env.NODE_ENV === 'development';
 let backendProcess: ReturnType<typeof spawn> | null = null;
-
 
 // Disable GPU Acceleration for Windows 7
 if (release().startsWith('6.1')) {
@@ -102,7 +104,6 @@ app.whenReady().then(async () => {
         detached: false
       });
 
-
       backendProcess.stdout.on('data', (data) => {
         LOG.info(`[Backend STDOUT] ${data}`);
       });
@@ -115,9 +116,9 @@ app.whenReady().then(async () => {
         LOG.error(`[Backend ERROR EVENT] ${err}`);
       });
 
-      LOG.info('✅ Attempted to launch backend.');
+      LOG.info('Attempted to launch backend.');
     } catch (err) {
-      LOG.error('❌ Failed to launch backend:', err);
+      LOG.error('Failed to launch backend:', err);
     }
   }
 
@@ -272,7 +273,8 @@ app.on('before-quit', async (event): Promise<void> => {
     LOG.info(`Stopping all (${trackers.getRunningTrackerNames().join(', ')}) trackers...`);
     await Promise.all([
       trackers.stopAllTrackers(),
-      UsageDataService.createNewUsageDataEvent(UsageDataEventType.AppQuit)
+      UsageDataService.createNewUsageDataEvent(UsageDataEventType.AppQuit),
+      sessionService.createOrUpdateSessionFromEvent(UsageDataEventType.AppQuit, new Date())
     ]);
     LOG.info(`All trackers stopped. Running: ${trackers.getRunningTrackerNames().length}`);
     isAppQuitting = true;

@@ -9,6 +9,7 @@ import { UserInputEntity } from '../entities/UserInputEntity';
 import { Settings } from '../entities/Settings';
 import { UsageDataEntity } from '../entities/UsageDataEntity';
 import { WorkDayEntity } from '../entities/WorkDayEntity';
+import { SessionEntity } from '../entities/SessionEntity';
 
 const LOG = getMainLogger('DatabaseService');
 
@@ -29,6 +30,7 @@ export class DatabaseService {
   public async init(): Promise<void> {
     let entities: any = [
       ExperienceSamplingResponseEntity,
+      SessionEntity,
       Settings,
       UsageDataEntity,
       UserInputEntity,
