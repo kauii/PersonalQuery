@@ -1,4 +1,4 @@
-name: Build and Publish PersonalAnalytics
+name: Build and Publish PersonalQuery
 on:
   push:
     branches:
