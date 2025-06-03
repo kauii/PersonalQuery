@@ -30,8 +30,16 @@ jobs:
         uses: actions/setup-node@master
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Install dependencies
-        run: npm ci
+
+      - name: Prevent interactive prompts (Windows only)
+        if: matrix.os == 'windows-latest'
+        run: git config --global core.autocrlf input
+
+      - name: Install dependencies (non-interactive)
+        run: npm ci --no-audit --no-fund
+        env:
+          ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: true
+
       - name: Build
         shell: bash
         run: |
