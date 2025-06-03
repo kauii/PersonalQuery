@@ -62,6 +62,9 @@ export class WindowService {
   }
 
   public async createExperienceSamplingWindow(isManuallyTriggered: boolean = false) {
+    isManuallyTriggered
+      ? LOG.info('Trying to create ExperienceSamplingWindow [Automatically]')
+      : LOG.info('Trying to create ExperienceSamplingWindow [Manually]');
     if (this.experienceSamplingWindow) {
       this.experienceSamplingWindow.close();
       this.experienceSamplingWindow = null;
@@ -96,7 +99,7 @@ export class WindowService {
       fullscreenable: false,
       resizable: false,
       acceptFirstMouse: true,
-      title: 'PersonalAnalytics: Self-Report',
+      title: 'PersonalQuery: Self-Report',
       webPreferences: {
         preload
       }
@@ -119,6 +122,7 @@ export class WindowService {
       this.experienceSamplingWindow?.setOpacity(opacity);
       opacity += 0.1;
     }, 10);
+    LOG.info('experienceSamplingWindow not to be shown...');
     this.experienceSamplingWindow.showInactive();
 
     this.experienceSamplingWindow.on('close', () => {
@@ -159,7 +163,7 @@ export class WindowService {
       maximizable: false,
       fullscreenable: false,
       resizable: false,
-      title: 'PersonalAnalytics: Settings',
+      title: 'PersonalQuery: Settings',
       webPreferences: {
         preload
       }
@@ -245,7 +249,7 @@ export class WindowService {
       maximizable: false,
       fullscreenable: false,
       resizable: false,
-      title: 'PersonalAnalytics: Onboarding',
+      title: 'PersonalQuery: Onboarding',
       webPreferences: {
         preload
       }
@@ -306,7 +310,7 @@ export class WindowService {
       minWidth: 1200,
       minHeight: 850,
       fullscreenable: false,
-      title: 'PersonalAnalytics: Data Export',
+      title: 'PersonalQuery: Data Export',
       webPreferences: {
         preload
       }
@@ -405,7 +409,7 @@ export class WindowService {
     });
 
     this.tray.setToolTip(
-      `Personal Analytics is running...\n\nYou are participating in: ${studyConfig.name}`
+      `Personal Query is running...\n\nYou are participating in: ${studyConfig.name}`
     );
   }
 

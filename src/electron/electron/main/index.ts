@@ -21,7 +21,7 @@ import { Settings } from './entities/Settings';
 import { UsageDataService } from './services/UsageDataService';
 import { UsageDataEventType } from '../enums/UsageDataEventType.enum';
 import { WorkScheduleService } from './services/WorkScheduleService';
-import { spawn } from 'child_process';
+import { spawn, exec } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import { SessionService } from './services/SessionService';
@@ -82,12 +82,12 @@ log.initialize();
 const LOG = getMainLogger('Main');
 
 app.whenReady().then(async () => {
-  app.setAppUserModelId('ch.ifi.hasel.personal-analytics');
+  app.setAppUserModelId('ch.ifi.hasel.personalquery');
   const isDev = !app.isPackaged;
 
   if (!isDev) {
     try {
-      const backendExePath = path.join(process.resourcesPath, 'personalquery-backend.exe');
+      const backendExePath = path.join(process.resourcesPath, 'pq-backend.exe');
       LOG.info('[DEBUG] isDev = false');
       LOG.info('[DEBUG] Resolved backend exe path:', backendExePath);
 
@@ -95,15 +95,14 @@ app.whenReady().then(async () => {
       LOG.info('[DEBUG] File exists:', exists);
 
       if (!exists) {
-        throw new Error(`[personalquery-backend.exe] NOT FOUND at: ${backendExePath}`);
+        throw new Error(`[pq-backend.exe] NOT FOUND at: ${backendExePath}`);
       }
+      LOG.info(`Launching backend with PID placeholder`);
 
       backendProcess = spawn(backendExePath, {
-        windowsHide: true,
-        cwd: path.dirname(backendExePath),
-        detached: false
+        cwd: path.dirname(backendExePath)
       });
-
+      LOG.info(`Spawned backendProcess with PID: ${backendProcess.pid}`);
       backendProcess.stdout.on('data', (data) => {
         LOG.info(`[Backend STDOUT] ${data}`);
       });
@@ -132,6 +131,7 @@ app.whenReady().then(async () => {
   }
 
   try {
+    await databaseService.checkAndImportOldDataBase();
     await databaseService.init();
     await workScheduleService.init();
     await settingsService.init();
@@ -255,7 +255,7 @@ app.whenReady().then(async () => {
     LOG.error('Error during app initialization', error);
     dialog.showErrorBox(
       'Error during app initialization',
-      `PersonalAnalytics couldn't be started. Please try again or contact us at ${studyConfig.contactEmail} for help. ${error}`
+      `PersonalQuery couldn't be started. Please try again or contact us at ${studyConfig.contactEmail} for help. ${error}`
     );
     app.exit();
   }
@@ -264,8 +264,20 @@ app.whenReady().then(async () => {
 let isAppQuitting = false;
 app.on('before-quit', async (event): Promise<void> => {
   if (backendProcess) {
-    LOG.info('Killing backend process...');
-    backendProcess.kill();
+    const pid = backendProcess.pid;
+    LOG.info(`Killing backend process with PID: ${pid}`);
+
+    // Use taskkill to ensure subprocesses are killed
+    exec(`taskkill /PID ${pid} /T /F`, (err, stdout, stderr) => {
+      if (err) {
+        LOG.error(`taskkill error: ${err.message}`);
+        return;
+      }
+      if (stderr) {
+        LOG.error(`taskkill stderr: ${stderr}`);
+      }
+      LOG.info(`taskkill stdout: ${stdout}`);
+    });
   }
   LOG.info('app.on(before-quit) called');
   if (!isAppQuitting) {

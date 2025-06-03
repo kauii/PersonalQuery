@@ -88,3 +88,8 @@ src/py-backend/build/personalquery-backend/Analysis-00.toc
 /src/py-backend/src/__pycache__
 src/py-backend/src/helper/.env
 src/py-backend/src/backend.log
+src/py-backend/backend.log
+src/py-backend/build/file_version.txt
+src/py-backend/build/file_version.txt
+/src/py-backend/build
+/src/py-backend/dist

@@ -4,7 +4,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
 from chat_engine import run_chat, get_chat_history, initialize, delete_chat, rename_chat, resume_stream
+from database import DB_PATH
 from helper.chat_utils import get_next_thread_id, list_chats
+from helper.db_modification import update_sessions_from_usage_data, add_window_activity_durations
 
 
 @asynccontextmanager
@@ -92,3 +94,12 @@ async def handle_approval(request: Request):
         return msg
     else:
         return {}
+
+@app.post("/initialize-data")
+def initialize_data():
+    try:
+        update_sessions_from_usage_data(DB_PATH)
+        add_window_activity_durations(DB_PATH)
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

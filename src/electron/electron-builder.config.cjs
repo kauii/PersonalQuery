@@ -6,7 +6,7 @@ module.exports = {
     'node_modules/better_sqlite3/**',
     'node_modules/sqlite3/**',
     'node_modules/**/*.node',
-    'personalquery-backend.exe'
+    'pq-backend.exe'
   ],
   directories: {
     output: 'release/${version}'
@@ -15,15 +15,15 @@ module.exports = {
     'dist',
     'dist-electron',
     {
-      from: '../py-backend/dist/personalquery-backend.exe',
-      to: 'personalquery-backend.exe'
+      from: '../py-backend/dist/pq-backend.exe',
+      to: 'pq-backend.exe'
     },
     '!node_modules/uiohook-napi/build/**'
   ],
   extraResources: [
     {
-      from: '../py-backend/dist/personalquery-backend.exe',
-      to: 'personalquery-backend.exe',
+      from: '../py-backend/dist/pq-backend.exe',
+      to: 'pq-backend.exe',
       filter: ['**/*']
     }
   ],

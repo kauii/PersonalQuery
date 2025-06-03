@@ -19,7 +19,7 @@ prompt_template = hub.pull("classify_question")
 prompt_template_title = hub.pull("generate_title")
 
 APPDATA_PATH = Path(os.getenv("APPDATA", Path.home()))
-CHECKPOINT_DB_PATH = APPDATA_PATH / "personal-analytics" / "chat_checkpoints.db"
+CHECKPOINT_DB_PATH = APPDATA_PATH / "personal-query" / "chat_checkpoints.db"
 
 
 def classify_chain(llm: ChatOpenAI):

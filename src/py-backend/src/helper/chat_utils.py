@@ -6,7 +6,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.graph.graph import CompiledGraph
 
 APPDATA_PATH = Path(os.getenv("APPDATA", Path.home()))
-CHECKPOINT_DB_PATH = APPDATA_PATH / "personal-analytics" / "chat_checkpoints.db"
+CHECKPOINT_DB_PATH = APPDATA_PATH / "personal-query" / "chat_checkpoints.db"
 
 
 def get_next_thread_id() -> str:

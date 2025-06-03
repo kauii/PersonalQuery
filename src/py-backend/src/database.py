@@ -8,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 APPDATA_PATH = Path(os.getenv("APPDATA", Path.home()))
-DB_PATH = APPDATA_PATH / "personal-analytics" / "database.sqlite"
+DB_PATH = APPDATA_PATH / "personal-query" / "database.sqlite"
 
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 

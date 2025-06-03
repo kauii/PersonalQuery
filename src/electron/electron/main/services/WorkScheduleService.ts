@@ -43,7 +43,7 @@ export class WorkScheduleService {
   public async currentlyWithinWorkHours(): Promise<boolean> {
     const schedule = await this.getWorkSchedule();
     const now = new Date();
-    const day = weekDays[(now.getDay() - 1) % 7];
+    const day = weekDays[(now.getDay() + 6) % 7];
     const workday = schedule[day];
     const start = new Date();
     start.setHours(

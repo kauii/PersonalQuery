@@ -25,11 +25,14 @@ from schemas import State
 from llm_registry import LLMRegistry
 
 APPDATA_PATH = Path(os.getenv("APPDATA", Path.home()))
-CHECKPOINT_DB_PATH = APPDATA_PATH / "personal-analytics" / "chat_checkpoints.db"
-DB_PATH = APPDATA_PATH / "personal-analytics" / "database.sqlite"
+CHECKPOINT_DB_PATH = APPDATA_PATH / "personal-query" / "chat_checkpoints.db"
+DB_PATH = APPDATA_PATH / "personal-query" / "database.sqlite"
 
 graph: CompiledGraph
 checkpointer: SqliteSaver
+
+logging.basicConfig(level=logging.INFO)  # Ensure logging works even if not set up yet
+logging.info(f"👀 chat_engine.py loaded in PID: {os.getpid()}")
 
 
 def initialize():
@@ -110,9 +113,6 @@ def initialize():
         )
     """)
 
-    update_sessions_from_usage_data(DB_PATH)
-    add_window_activity_durations(DB_PATH)
-
 
 async def run_chat(question: str, chat_id: str, top_k=150, auto_approve=False, on_update=None) -> Dict:
     """Main chat execution."""
@@ -135,7 +135,6 @@ async def run_chat(question: str, chat_id: str, top_k=150, auto_approve=False, o
         messages = snapshot.values.get("messages", [])
     except Exception:
         messages = []
-
 
     if not any(isinstance(msg, SystemMessage) for msg in messages):
         messages.insert(0, SystemMessage(
