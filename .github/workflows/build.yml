@@ -43,11 +43,6 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: pip install poetry
 
-      - name: Create dummy .env for backend build
-        if: matrix.os == 'windows-latest'
-        working-directory: src/py-backend/src/helper
-        run: echo "# CI dummy env file" > .env
-
       - name: Install backend dependencies via Poetry (Windows only)
         if: matrix.os == 'windows-latest'
         working-directory: src/py-backend
@@ -57,6 +52,13 @@ jobs:
         if: matrix.os == 'windows-latest'
         working-directory: src/py-backend
         run: poetry run pyinstaller personalquery-backend.spec
+        env:
+          LANGSMITH_TRACING: true
+          LANGSMITH_ENDPOINT: https://api.smith.langchain.com
+          LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+          LANGSMITH_PROJECT: personalQuery
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MY_OPENAI_API_KEY: ${{ secrets.MY_OPENAI_API_KEY }}
 
       - name: Prevent interactive prompts (Windows only)
         if: matrix.os == 'windows-latest'
