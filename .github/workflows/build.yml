@@ -18,10 +18,10 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-          #- os: macos-latest
-          #  mac_arch: arm64
-          #- os: macos-latest
-          #  mac_arch: x64
+          - os: macos-latest
+            mac_arch: arm64
+          - os: macos-latest
+            mac_arch: x64
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,21 +32,26 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      # Set up Python + Poetry for Windows
       - name: Set up Python (Windows only)
         if: matrix.os == 'windows-latest'
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
-      - name: Install backend Python dependencies
+      - name: Install Poetry (Windows only)
         if: matrix.os == 'windows-latest'
-        working-directory: py-backend
-        run: pip install -r requirements.txt
+        run: pip install poetry
 
-      - name: Build Python backend executable
+      - name: Install backend dependencies via Poetry (Windows only)
         if: matrix.os == 'windows-latest'
-        working-directory: py-backend
-        run: pyinstaller --noconfirm --onefile --distpath dist personalquery_backend.py
+        working-directory: ../py-backend
+        run: poetry install --no-root
+
+      - name: Build backend executable with PyInstaller (Windows only)
+        if: matrix.os == 'windows-latest'
+        working-directory: ../py-backend
+        run: poetry run pyinstaller personalquery-backend.spec
 
       - name: Prevent interactive prompts (Windows only)
         if: matrix.os == 'windows-latest'
