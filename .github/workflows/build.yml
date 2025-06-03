@@ -18,10 +18,10 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-          - os: macos-latest
-            mac_arch: arm64
-          - os: macos-latest
-            mac_arch: x64
+          #- os: macos-latest
+          #  mac_arch: arm64
+          #- os: macos-latest
+          #  mac_arch: x64
     steps:
       - uses: actions/checkout@v4
         with:
