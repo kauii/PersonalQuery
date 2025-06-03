@@ -18,18 +18,35 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-          - os: macos-latest
-            mac_arch: arm64
-          - os: macos-latest
-            mac_arch: x64
+          #- os: macos-latest
+          #  mac_arch: arm64
+          #- os: macos-latest
+          #  mac_arch: x64
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
+
       - name: Setup Node
         uses: actions/setup-node@master
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up Python (Windows only)
+        if: matrix.os == 'windows-latest'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install backend Python dependencies
+        if: matrix.os == 'windows-latest'
+        working-directory: py-backend
+        run: pip install -r requirements.txt
+
+      - name: Build Python backend executable
+        if: matrix.os == 'windows-latest'
+        working-directory: py-backend
+        run: pyinstaller --noconfirm --onefile --distpath dist personalquery_backend.py
 
       - name: Prevent interactive prompts (Windows only)
         if: matrix.os == 'windows-latest'
