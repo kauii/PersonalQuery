@@ -47,7 +47,13 @@ export class WindowService {
       }
     );
     if (!is.dev) {
-      Menu.setApplicationMenu(null);
+      const hiddenMenu = Menu.buildFromTemplate([
+        {
+          label: 'Tools',
+          submenu: [{ role: 'reload' }, { role: 'toggleDevTools' }]
+        }
+      ]);
+      Menu.setApplicationMenu(hiddenMenu);
     }
   }
 
@@ -56,6 +62,9 @@ export class WindowService {
   }
 
   public async createExperienceSamplingWindow(isManuallyTriggered: boolean = false) {
+    isManuallyTriggered
+      ? LOG.info('Trying to create ExperienceSamplingWindow [Automatically]')
+      : LOG.info('Trying to create ExperienceSamplingWindow [Manually]');
     if (this.experienceSamplingWindow) {
       this.experienceSamplingWindow.close();
       this.experienceSamplingWindow = null;
@@ -90,7 +99,7 @@ export class WindowService {
       fullscreenable: false,
       resizable: false,
       acceptFirstMouse: true,
-      title: 'PersonalAnalytics: Self-Report',
+      title: 'PersonalQuery: Self-Report',
       webPreferences: {
         preload
       }
@@ -113,6 +122,7 @@ export class WindowService {
       this.experienceSamplingWindow?.setOpacity(opacity);
       opacity += 0.1;
     }, 10);
+    LOG.info('experienceSamplingWindow not to be shown...');
     this.experienceSamplingWindow.showInactive();
 
     this.experienceSamplingWindow.on('close', () => {
@@ -153,7 +163,7 @@ export class WindowService {
       maximizable: false,
       fullscreenable: false,
       resizable: false,
-      title: 'PersonalAnalytics: Settings',
+      title: 'PersonalQuery: Settings',
       webPreferences: {
         preload
       }
@@ -214,7 +224,7 @@ export class WindowService {
     this.chatWindow.on('close', () => {
       this.chatWindow = null;
     });
-
+    this.chatWindow.webContents.openDevTools();
     this.chatWindow.show();
   }
 
@@ -239,7 +249,7 @@ export class WindowService {
       maximizable: false,
       fullscreenable: false,
       resizable: false,
-      title: 'PersonalAnalytics: Onboarding',
+      title: 'PersonalQuery: Onboarding',
       webPreferences: {
         preload
       }
@@ -300,7 +310,7 @@ export class WindowService {
       minWidth: 1200,
       minHeight: 850,
       fullscreenable: false,
-      title: 'PersonalAnalytics: Data Export',
+      title: 'PersonalQuery: Data Export',
       webPreferences: {
         preload
       }
@@ -399,7 +409,7 @@ export class WindowService {
     });
 
     this.tray.setToolTip(
-      `Personal Analytics is running...\n\nYou are participating in: ${studyConfig.name}`
+      `Personal Query is running...\n\nYou are participating in: ${studyConfig.name}`
     );
   }
 
@@ -408,7 +418,7 @@ export class WindowService {
     if (this.tray) {
       return;
     }
-    const iconToUse = is.macOS ? 'IconTemplate.png' : 'IconColored@2x.png';
+    const iconToUse = is.macOS ? 'IconTemplate.png' : '32x32.png';
     const appIcon = path.join(process.env.VITE_PUBLIC, iconToUse);
     const trayImage = nativeImage.createFromPath(appIcon);
     trayImage.setTemplateImage(true);
@@ -478,16 +488,16 @@ export class WindowService {
       },
       { type: 'separator' },
       {
-        label: 'Quit',
+        label: 'Open Chat',
         click: () => {
-          app.quit();
+          this.createChatWindow();
         }
       },
       { type: 'separator' },
       {
-        label: 'Open Chat',
+        label: 'Quit',
         click: () => {
-          this.createChatWindow();
+          app.quit();
         }
       }
     ];

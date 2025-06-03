@@ -1,0 +1,34 @@
+[tool.poetry]
+name = "personalquery-backend"
+version = "0.1.0"
+description = "LLM-powered backend for the PersonalQuery Electron app"
+authors = ["Kavishan Srirangarasa <kavishanwin8@hotmail.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.12,<4.0"
+langchain-community = "^0.3.20"
+langchainhub = "^0.1.21"
+langgraph = "^0.4.0"
+langchain-openai = "^0.3.10"
+faiss-cpu = "^1.10.0"
+langchain = "^0.3.21"
+sentence-transformers = "^4.0.1"
+langchain-huggingface = "^0.2.0"
+fastapi = "^0.115.12"
+langgraph-checkpoint-sqlite = "^2.0.6"
+uvicorn = {extras = ["standard"], version = "^0.34.2"}
+aiosqlite = "^0.21.0"
+pyinstaller = { version = "^6.13.0", markers = "python_version < '3.14'" }
+psutil = "^7.0.0"
+
+[tool.poetry.group.dev.dependencies]
+setuptools = "^78.0.1"
+
+[tool.poetry.scripts]
+backend = "uvicorn server_rest:app --reload --port 8000"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

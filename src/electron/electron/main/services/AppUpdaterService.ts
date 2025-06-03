@@ -33,7 +33,7 @@ export default class AppUpdaterService extends EventEmitter {
       }
       const dialogResponse = await dialog.showMessageBox({
         type: 'info',
-        title: 'Found PersonalAnalytics Update',
+        title: 'Found PersonalQuery Update',
         message: 'New update available, do you want to download the update now?',
         defaultId: 0,
         cancelId: 1,
@@ -54,7 +54,7 @@ export default class AppUpdaterService extends EventEmitter {
         this.failedUpdateAttempts = 0;
         dialog.showErrorBox(
           'Error during the update',
-          `PersonalAnalytics couldn't be updated. Please try again or contact us at ${studyConfig.contactEmail}`
+          `PersonalQuery couldn't be updated. Please try again or contact us at ${studyConfig.contactEmail}`
         );
       }
     });
@@ -66,7 +66,7 @@ export default class AppUpdaterService extends EventEmitter {
       if (this.isSilentCheckForUpdates) return;
       dialog.showMessageBox({
         title: 'No Updates',
-        message: 'Current PersonalAnalytics version is up-to-date.'
+        message: 'Current PersonalQuery version is up-to-date.'
       });
     });
 
@@ -76,7 +76,7 @@ export default class AppUpdaterService extends EventEmitter {
       this.updateDownloaded = true;
       this.changeUpdaterMenu({ label: 'Updates available', enabled: true });
       const dialogResponse = await dialog.showMessageBox({
-        title: 'Install PersonalAnalytics Updates',
+        title: 'Install PersonalQuery Updates',
         message: 'Updates are ready to be installed.',
         defaultId: 0,
         cancelId: 1,
@@ -108,7 +108,7 @@ export default class AppUpdaterService extends EventEmitter {
         this.changeUpdaterMenu({ label: 'Checking for updates...', enabled: false });
         if (this.updateDownloaded) {
           const dialogResponse = await dialog.showMessageBox({
-            title: 'PersonalAnalytics Update Available',
+            title: 'PersonalQuery Update Available',
             message: 'New updates are available and ready to be installed.',
             defaultId: 0,
             cancelId: 1,

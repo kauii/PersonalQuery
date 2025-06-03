@@ -135,12 +135,7 @@ function startAllTrackers() {
       <transition-group :name="transitionName">
         <div v-if="currentNamedStep === 'welcome'" key="0" class="flex w-full flex-col">
           <div class="flex flex-row">
-            <img
-              class="self-center"
-              src="../assets/logo.svg"
-              alt="PersonalAnalytics Logo"
-              width="80"
-            />
+            <img class="self-center" src="../assets/logo.svg" alt="PersonalQuery Logo" width="80" />
             <h1
               id="title"
               class="ml-5 self-center text-3xl font-medium text-neutral-800 dark:text-neutral-300"

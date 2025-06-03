@@ -21,6 +21,10 @@ import { Settings } from './entities/Settings';
 import { UsageDataService } from './services/UsageDataService';
 import { UsageDataEventType } from '../enums/UsageDataEventType.enum';
 import { WorkScheduleService } from './services/WorkScheduleService';
+import { spawn, exec } from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs';
+import { SessionService } from './services/SessionService';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -37,6 +41,7 @@ const workScheduleService: WorkScheduleService = new WorkScheduleService();
 const appUpdaterService: AppUpdaterService = new AppUpdaterService();
 const windowService: WindowService = new WindowService(appUpdaterService);
 const experienceSamplingService: ExperienceSamplingService = new ExperienceSamplingService();
+const sessionService: SessionService = new SessionService();
 const trackers: TrackerService = new TrackerService(
   studyConfig.trackers,
   windowService,
@@ -46,8 +51,11 @@ const ipcHandler: IpcHandler = new IpcHandler(
   windowService,
   trackers,
   experienceSamplingService,
+  sessionService,
   workScheduleService
 );
+const isDev = process.env.NODE_ENV === 'development';
+let backendProcess: ReturnType<typeof spawn> | null = null;
 
 // Disable GPU Acceleration for Windows 7
 if (release().startsWith('6.1')) {
@@ -59,7 +67,7 @@ if (process.platform === 'win32') {
   app.setAppUserModelId(app.getName());
 }
 
-if (!app.requestSingleInstanceLock()) {
+if (!isDev && !app.requestSingleInstanceLock()) {
   console.log('Another instance of the app is already running');
   app.quit();
   process.exit(0);
@@ -74,7 +82,44 @@ log.initialize();
 const LOG = getMainLogger('Main');
 
 app.whenReady().then(async () => {
-  app.setAppUserModelId('ch.ifi.hasel.personal-analytics');
+  app.setAppUserModelId('ch.ifi.hasel.personalquery');
+  const isDev = !app.isPackaged;
+
+  if (!isDev) {
+    try {
+      const backendExePath = path.join(process.resourcesPath, 'pq-backend.exe');
+      LOG.info('[DEBUG] isDev = false');
+      LOG.info('[DEBUG] Resolved backend exe path:', backendExePath);
+
+      const exists = fs.existsSync(backendExePath);
+      LOG.info('[DEBUG] File exists:', exists);
+
+      if (!exists) {
+        throw new Error(`[pq-backend.exe] NOT FOUND at: ${backendExePath}`);
+      }
+      LOG.info(`Launching backend with PID placeholder`);
+
+      backendProcess = spawn(backendExePath, {
+        cwd: path.dirname(backendExePath)
+      });
+      LOG.info(`Spawned backendProcess with PID: ${backendProcess.pid}`);
+      backendProcess.stdout.on('data', (data) => {
+        LOG.info(`[Backend STDOUT] ${data}`);
+      });
+
+      backendProcess.stderr.on('data', (data) => {
+        LOG.error(`[Backend STDERR] ${data}`);
+      });
+
+      backendProcess.on('error', (err) => {
+        LOG.error(`[Backend ERROR EVENT] ${err}`);
+      });
+
+      LOG.info('Attempted to launch backend.');
+    } catch (err) {
+      LOG.error('Failed to launch backend:', err);
+    }
+  }
 
   if (!is.dev) {
     app.setLoginItemSettings({
@@ -86,6 +131,7 @@ app.whenReady().then(async () => {
   }
 
   try {
+    await databaseService.checkAndImportOldDataBase();
     await databaseService.init();
     await workScheduleService.init();
     await settingsService.init();
@@ -112,25 +158,26 @@ app.whenReady().then(async () => {
 
     await appUpdaterService.checkForUpdates({ silent: true });
     appUpdaterService.startCheckForUpdatesInterval();
+    if (!isDev) {
+      if (studyConfig.trackers.windowActivityTracker.enabled) {
+        await trackers.registerTrackerCallback(
+          TrackerType.WindowsActivityTracker,
+          WindowActivityTrackerService.handleWindowChange
+        );
+      }
+      if (studyConfig.trackers.userInputTracker.enabled) {
+        await trackers.registerTrackerCallback(
+          TrackerType.UserInputTracker,
+          UserInputTrackerService.handleUserInputEvent
+        );
+      }
+      if (studyConfig.trackers.experienceSamplingTracker.enabled) {
+        await trackers.registerTrackerCallback(TrackerType.ExperienceSamplingTracker);
+      }
 
-    if (studyConfig.trackers.windowActivityTracker.enabled) {
-      await trackers.registerTrackerCallback(
-        TrackerType.WindowsActivityTracker,
-        WindowActivityTrackerService.handleWindowChange
-      );
-    }
-    if (studyConfig.trackers.userInputTracker.enabled) {
-      await trackers.registerTrackerCallback(
-        TrackerType.UserInputTracker,
-        UserInputTrackerService.handleUserInputEvent
-      );
-    }
-    if (studyConfig.trackers.experienceSamplingTracker.enabled) {
-      await trackers.registerTrackerCallback(TrackerType.ExperienceSamplingTracker);
-    }
-
-    if (studyConfig.displayDaysParticipated) {
-      await trackers.registerTrackerCallback(TrackerType.DaysParticipatedTracker);
+      if (studyConfig.displayDaysParticipated) {
+        await trackers.registerTrackerCallback(TrackerType.DaysParticipatedTracker);
+      }
     }
 
     const settings: Settings = await Settings.findOneBy({ onlyOneEntityShouldExist: 1 });
@@ -208,7 +255,7 @@ app.whenReady().then(async () => {
     LOG.error('Error during app initialization', error);
     dialog.showErrorBox(
       'Error during app initialization',
-      `PersonalAnalytics couldn't be started. Please try again or contact us at ${studyConfig.contactEmail} for help. ${error}`
+      `PersonalQuery couldn't be started. Please try again or contact us at ${studyConfig.contactEmail} for help. ${error}`
     );
     app.exit();
   }
@@ -216,13 +263,30 @@ app.whenReady().then(async () => {
 
 let isAppQuitting = false;
 app.on('before-quit', async (event): Promise<void> => {
+  if (backendProcess) {
+    const pid = backendProcess.pid;
+    LOG.info(`Killing backend process with PID: ${pid}`);
+
+    // Use taskkill to ensure subprocesses are killed
+    exec(`taskkill /PID ${pid} /T /F`, (err, stdout, stderr) => {
+      if (err) {
+        LOG.error(`taskkill error: ${err.message}`);
+        return;
+      }
+      if (stderr) {
+        LOG.error(`taskkill stderr: ${stderr}`);
+      }
+      LOG.info(`taskkill stdout: ${stdout}`);
+    });
+  }
   LOG.info('app.on(before-quit) called');
   if (!isAppQuitting) {
     event.preventDefault();
     LOG.info(`Stopping all (${trackers.getRunningTrackerNames().join(', ')}) trackers...`);
     await Promise.all([
       trackers.stopAllTrackers(),
-      UsageDataService.createNewUsageDataEvent(UsageDataEventType.AppQuit)
+      UsageDataService.createNewUsageDataEvent(UsageDataEventType.AppQuit),
+      sessionService.createOrUpdateSessionFromEvent(UsageDataEventType.AppQuit, new Date())
     ]);
     LOG.info(`All trackers stopped. Running: ${trackers.getRunningTrackerNames().length}`);
     isAppQuitting = true;

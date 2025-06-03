@@ -103,9 +103,9 @@ export class TrackerService {
         uitIntervalInMs + bufferInMs
       );
       if (!recentUserInputExists) {
-        LOG.warn(
+        /*LOG.warn(
           `No user input data found from the last ${uitIntervalInMs + bufferInMs}ms. Was supposed to find one created at or after ${new Date(Date.now() - (uitIntervalInMs + bufferInMs))}`
-        );
+        );*/
       }
       this.setCheckIfUITIsWorkingJob();
     });

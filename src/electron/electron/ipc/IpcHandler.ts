@@ -16,12 +16,15 @@ import { DataExportService } from '../main/services/DataExportService';
 import UserInputDto from '../../shared/dto/UserInputDto';
 import WindowActivityDto from '../../shared/dto/WindowActivityDto';
 import ExperienceSamplingDto from '../../shared/dto/ExperienceSamplingDto';
+import SessionDto from '../../shared/dto/SessionDto';
 import { is } from '../main/services/utils/helpers';
 import { JSDOM } from 'jsdom';
 import DOMPurify from 'dompurify';
 import { WorkScheduleService } from 'electron/main/services/WorkScheduleService';
 import { WorkHoursDto } from 'shared/dto/WorkHoursDto';
 import path from 'path';
+import { SessionService } from '../main/services/SessionService';
+import { UsageDataEventType } from '../enums/UsageDataEventType.enum';
 
 const LOG = getMainLogger('IpcHandler');
 
@@ -31,6 +34,7 @@ export class IpcHandler {
   private readonly trackerService: TrackerService;
 
   private readonly experienceSamplingService: ExperienceSamplingService;
+  private readonly sessionService: SessionService;
   private readonly windowActivityService: WindowActivityTrackerService;
   private readonly userInputService: UserInputTrackerService;
   private readonly dataExportService: DataExportService;
@@ -41,11 +45,13 @@ export class IpcHandler {
     windowService: WindowService,
     trackerService: TrackerService,
     experienceSamplingService: ExperienceSamplingService,
+    sessionService: SessionService,
     workScheduleService: WorkScheduleService
   ) {
     this.windowService = windowService;
     this.trackerService = trackerService;
     this.experienceSamplingService = experienceSamplingService;
+    this.sessionService = sessionService;
     this.windowActivityService = new WindowActivityTrackerService();
     this.userInputService = new UserInputTrackerService();
     this.dataExportService = new DataExportService();
@@ -62,10 +68,12 @@ export class IpcHandler {
       getWorkHoursEnabled: this.getWorkHoursEnabled,
       createExperienceSample: this.createExperienceSample,
       closeExperienceSamplingWindow: this.closeExperienceSamplingWindow,
+      createSessionEvent: this.createSessionEvent,
       closeOnboardingWindow: this.closeOnboardingWindow,
       closeDataExportWindow: this.closeDataExportWindow,
       getStudyInfo: this.getStudyInfo,
       getMostRecentExperienceSamplingDtos: this.getMostRecentExperienceSamplingDtos,
+      getMostRecentSessionDtos: this.getMostRecentSessionDtos,
       getMostRecentWindowActivityDtos: this.getMostRecentWindowActivityDtos,
       getMostRecentUserInputDtos: this.getMostRecentUserInputDtos,
       obfuscateWindowActivityDtosById: this.obfuscateWindowActivityDtosById,
@@ -106,6 +114,12 @@ export class IpcHandler {
       response,
       skipped
     );
+    LOG.info(`Creating session based on ES response at ${promptedAt.toISOString()}`);
+
+    await this.sessionService.createOrUpdateSessionFromEvent(
+      UsageDataEventType.ExperienceSamplingAnswered,
+      promptedAt
+    );
   }
 
   private openLogs() {
@@ -120,6 +134,11 @@ export class IpcHandler {
 
   private closeExperienceSamplingWindow(skippedExperienceSampling: boolean): void {
     this.windowService.closeExperienceSamplingWindow(skippedExperienceSampling);
+  }
+
+  private async createSessionEvent(type: UsageDataEventType, createdAt: string): Promise<void> {
+    const parsedDate = new Date(createdAt);
+    await this.sessionService.createOrUpdateSessionFromEvent(type, parsedDate);
   }
 
   private closeOnboardingWindow(): void {
@@ -177,6 +196,10 @@ export class IpcHandler {
     itemCount: number
   ): Promise<ExperienceSamplingDto[]> {
     return await this.experienceSamplingService.getMostRecentExperienceSamplingDtos(itemCount);
+  }
+
+  private async getMostRecentSessionDtos(itemCount: number): Promise<SessionDto[]> {
+    return await this.sessionService.getMostRecentSessionDtos(itemCount);
   }
 
   private async getMostRecentWindowActivityDtos(itemCount: number): Promise<WindowActivityDto[]> {

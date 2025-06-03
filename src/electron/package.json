@@ -1,12 +1,12 @@
 {
-  "name": "personal-analytics",
-  "description": "PersonalAnalytics is a privacy-protecting, open-source self-monitoring software",
-  "version": "0.0.47",
+  "name": "personal-query",
+  "description": "PersonalQuery, an extension of the PersonalAnalytics tool that integrates an LLM to enable NL querying of personal activity data.",
+  "version": "0.1.0",
   "main": "dist-electron/main/index.js",
   "type": "module",
   "author": {
-    "name": "HASEL",
-    "email": "dev@hasel.dev"
+    "name": "Kavishan Srirangarasa",
+    "email": "kavishan.srirangarasa@uzh.ch"
   },
   "scripts": {
     "dev": "vite",
@@ -23,7 +23,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/HASEL-UZH/PersonalAnalytics"
+    "url": "https://github.com/kauii/PersonalQuery"
   },
   "devDependencies": {
     "@electron/notarize": "^2.3.0",
@@ -67,6 +67,7 @@
     "electron-log": "^5.1.1",
     "electron-updater": "^6.3.0",
     "jsdom": "^25.0.1",
+    "marked": "^15.0.8",
     "node-schedule": "^2.1.1",
     "typeorm": "^0.3.20",
     "user-input-tracker": "file:PA.UserInputTracker/typescript",

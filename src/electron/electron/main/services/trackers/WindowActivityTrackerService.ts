@@ -8,12 +8,19 @@ const LOG = getMainLogger('WindowActivityTrackerService');
 
 export class WindowActivityTrackerService {
   private randomStringMap: Map<string, string> = new Map<string, string>();
+  private static lastWindow: ActiveWindow | null = null;
 
   public static async handleWindowChange(window: ActiveWindow): Promise<void> {
     // We only store activities with either a title, or url, or both
     if (!window.windowTitle && !window.url) {
       return;
     }
+    let duration = null;
+
+    if (this.lastWindow) {
+      duration = Math.floor((window.ts.getTime() - this.lastWindow.ts.getTime()) / 1000);
+    }
+
     await WindowActivityEntity.save({
       windowTitle: window.windowTitle,
       processName: window.process,
@@ -21,8 +28,11 @@ export class WindowActivityTrackerService {
       processId: window.processId,
       url: window.url,
       activity: window.activity,
-      ts: window.ts
+      ts: window.ts,
+      durationInSeconds: duration
     });
+
+    this.lastWindow = window;
   }
 
   public async getMostRecentWindowActivityDtos(itemCount: number): Promise<WindowActivityDto[]> {
