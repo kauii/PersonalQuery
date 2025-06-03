@@ -43,6 +43,11 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: pip install poetry
 
+      - name: Create dummy .env for backend build
+        if: matrix.os == 'windows-latest'
+        working-directory: src/py-backend/src/helper
+        run: echo "# CI dummy env file" > .env
+
       - name: Install backend dependencies via Poetry (Windows only)
         if: matrix.os == 'windows-latest'
         working-directory: src/py-backend
