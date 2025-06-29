@@ -84,12 +84,12 @@ src/py-backend/build/personalquery-backend/personalquery-backend.pkg
 src/py-backend/build/personalquery-backend/EXE-00.toc
 src/py-backend/build/personalquery-backend/base_library.zip
 src/py-backend/build/personalquery-backend/Analysis-00.toc
-*.pyc
 /src/py-backend/src/__pycache__
 src/py-backend/src/helper/.env
 src/py-backend/src/backend.log
 src/py-backend/backend.log
-src/py-backend/build/file_version.txt
-src/py-backend/build/file_version.txt
 /src/py-backend/build
 /src/py-backend/dist
+
+/node_modules
+/src/electron/src/styles/primevue

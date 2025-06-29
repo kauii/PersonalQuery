@@ -16,7 +16,7 @@ import { WindowService } from './services/WindowService';
 import { IpcHandler } from '../ipc/IpcHandler';
 import { ExperienceSamplingService } from './services/ExperienceSamplingService';
 import studyConfig from '../../shared/study.config';
-import { is } from './services/utils/helpers';
+import { is, waitForBackendReady } from './services/utils/helpers';
 import { Settings } from './entities/Settings';
 import { UsageDataService } from './services/UsageDataService';
 import { UsageDataEventType } from '../enums/UsageDataEventType.enum';
@@ -52,7 +52,8 @@ const ipcHandler: IpcHandler = new IpcHandler(
   trackers,
   experienceSamplingService,
   sessionService,
-  workScheduleService
+  workScheduleService,
+  databaseService
 );
 const isDev = process.env.NODE_ENV === 'development';
 let backendProcess: ReturnType<typeof spawn> | null = null;
@@ -131,6 +132,7 @@ app.whenReady().then(async () => {
   }
 
   try {
+    await waitForBackendReady();
     await databaseService.checkAndImportOldDataBase();
     await databaseService.init();
     await workScheduleService.init();
