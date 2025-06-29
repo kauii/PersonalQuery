@@ -18,20 +18,57 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-          - os: macos-latest
-            mac_arch: arm64
-          - os: macos-latest
-            mac_arch: x64
+          #- os: macos-latest
+          #  mac_arch: arm64
+          #- os: macos-latest
+          #  mac_arch: x64
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
+
       - name: Setup Node
         uses: actions/setup-node@master
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Install dependencies
-        run: npm ci
+
+      # Set up Python + Poetry for Windows
+      - name: Set up Python (Windows only)
+        if: matrix.os == 'windows-latest'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Poetry (Windows only)
+        if: matrix.os == 'windows-latest'
+        run: pip install poetry
+
+      - name: Install backend dependencies via Poetry (Windows only)
+        if: matrix.os == 'windows-latest'
+        working-directory: src/py-backend
+        run: poetry install --no-root
+
+      - name: Build backend executable with PyInstaller (Windows only)
+        if: matrix.os == 'windows-latest'
+        working-directory: src/py-backend
+        run: poetry run pyinstaller personalquery-backend.spec
+        env:
+          LANGSMITH_TRACING: false
+          LANGSMITH_ENDPOINT: https://api.smith.langchain.com
+          LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+          LANGSMITH_PROJECT: personalQuery
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MY_OPENAI_API_KEY: ${{ secrets.MY_OPENAI_API_KEY }}
+
+      - name: Prevent interactive prompts (Windows only)
+        if: matrix.os == 'windows-latest'
+        run: git config --global core.autocrlf input
+
+      - name: Install dependencies (non-interactive)
+        run: npm ci --no-audit --no-fund
+        env:
+          ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: true
+
       - name: Build
         shell: bash
         run: |
