@@ -32,6 +32,7 @@ export class WindowService {
   private dataExportWindow: BrowserWindow;
   private settingsWindow: BrowserWindow;
   private chatWindow: BrowserWindow;
+  private envSetupWindow: BrowserWindow;
 
   private hasOpenedDataExportUrl: boolean = false;
   private hasRevealedDataEportFolder: boolean = false;
@@ -202,8 +203,6 @@ export class WindowService {
     const preload = join(__dirname, '../preload/index.mjs');
 
     this.chatWindow = new BrowserWindow({
-      width: 1000,
-      height: 850,
       show: false,
       resizable: true,
       fullscreenable: true,
@@ -213,6 +212,8 @@ export class WindowService {
       }
     });
 
+    this.chatWindow.maximize();
+
     if (process.env.VITE_DEV_SERVER_URL) {
       await this.chatWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}#/chat`);
     } else {
@@ -221,11 +222,13 @@ export class WindowService {
       });
     }
 
+    this.chatWindow.once('ready-to-show', () => {
+      this.chatWindow.show();
+    });
+
     this.chatWindow.on('close', () => {
       this.chatWindow = null;
     });
-    this.chatWindow.webContents.openDevTools();
-    this.chatWindow.show();
   }
 
   public closeOnboardingWindow() {
@@ -380,6 +383,38 @@ export class WindowService {
     });
   }
 
+  public async createEnvSetupWindow(): Promise<void> {
+    return new Promise(async (resolve) => {
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = dirname(__filename);
+      const preload = join(__dirname, '../preload/index.mjs');
+
+      this.envSetupWindow = new BrowserWindow({
+        width: 500,
+        height: 300,
+        resizable: false,
+        title: 'Set up OpenAI API Key',
+        webPreferences: {
+          preload
+        }
+      });
+
+      this.envSetupWindow.on('closed', () => {
+        resolve();
+      });
+
+      if (process.env.VITE_DEV_SERVER_URL) {
+        await this.envSetupWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}#/setup-env`);
+      } else {
+        await this.envSetupWindow.loadFile(path.join(process.env.DIST, 'index.html'), {
+          hash: 'setup-env'
+        });
+      }
+
+      this.envSetupWindow.show();
+    });
+  }
+
   public showItemInFolder(path: string): void {
     this.hasRevealedDataEportFolder = true;
     shell.showItemInFolder(path);
@@ -400,9 +435,6 @@ export class WindowService {
     menuTemplate[1].enabled = updaterMenuEnabled;
 
     this.tray.setContextMenu(Menu.buildFromTemplate(menuTemplate));
-    this.tray.on('click', () => {
-      this.createChatWindow();
-    });
 
     this.tray.on('right-click', () => {
       this.tray.popUpContextMenu();

@@ -13,11 +13,11 @@ VSVersionInfo(
   kids=[
     StringFileInfo([
       StringTable('040904B0', [
-        StringStruct('CompanyName', 'kauii'),
+        StringStruct('CompanyName', 'HASEL-UZH'),
         StringStruct('FileDescription', 'PersonalQuery: Backend'),
-        StringStruct('FileVersion', '0.1.0'),
+        StringStruct('FileVersion', '0.1.2'),
         StringStruct('ProductName', 'PersonalQuery'),
-        StringStruct('ProductVersion', '0.1.0'),
+        StringStruct('ProductVersion', '0.1.2'),
         StringStruct('InternalName', 'PersonalQuery: Backend'),
         StringStruct('OriginalFilename', 'pq-backend.exe')
       ])

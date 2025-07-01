@@ -49,34 +49,26 @@ async def initialize():
         model="gpt-4o",
         temperature=0.0,
         base_url="https://api.openai.com/v1",
-        api_key=os.getenv("MY_OPENAI_API_KEY")
+        api_key=os.getenv("OPENAI_API_KEY")
     )
 
     llm_openai_high_temp = ChatOpenAI(
         model="gpt-4o",
         temperature=1.0,
         base_url="https://api.openai.com/v1",
-        api_key=os.getenv("MY_OPENAI_API_KEY")
+        api_key=os.getenv("OPENAI_API_KEY")
     )
 
     llm_openai_mini = ChatOpenAI(
         model="gpt-4o-mini",
         temperature=0.0,
         base_url="https://api.openai.com/v1",
-        api_key=os.getenv("MY_OPENAI_API_KEY")
-    )
-
-    llm_llama31 = ChatOpenAI(
-        model="llama31instruct",
-        temperature=0.0,
-        base_url="http://llm.hasel.dev:20769/v1",
         api_key=os.getenv("OPENAI_API_KEY")
     )
 
     LLMRegistry.register("openai", llm_openai)
     LLMRegistry.register("openai-high-temp", llm_openai_high_temp)
     LLMRegistry.register("openai-mini", llm_openai_mini)
-    LLMRegistry.register("llama31", llm_llama31)
 
     async with aiosqlite.connect(str(CHECKPOINT_DB_PATH)) as setup_conn:
         await setup_conn.execute("""
@@ -92,6 +84,7 @@ async def initialize():
                     id TEXT PRIMARY KEY,
                     thread_id TEXT,
                     message_id TEXT,
+                    question TEXT,
                     message_content TEXT,
                     data_correct INTEGER,
                     question_answered INTEGER,
@@ -244,9 +237,6 @@ async def run_chat(question: str,
                 f"\n\nCurrent time: {current_time}"
             )
         ))
-
-    messages.append(HumanMessage(content=question))
-
     state: State = {
         "thread_id": chat_id,
         "messages": messages,
@@ -257,6 +247,7 @@ async def run_chat(question: str,
         "tables": [],
         "activities": [],
         "query": "",
+        "original_question": "",
         "raw_result": "",
         "result": [],
         "answer": "",
@@ -273,6 +264,9 @@ async def run_chat(question: str,
         "plot_attempts": 0
     }
 
+    messages.append(HumanMessage(content=question))
+
+
     if not auto_approve or not auto_sql:
         interrupt_nodes = ["execute_query"]
     else:
@@ -281,19 +275,27 @@ async def run_chat(question: str,
     if websocket:
         await websocket.send_json({"type": "step", "node": "classify question"})
 
-    async for step in graph.astream(state, config, stream_mode="updates", interrupt_after=interrupt_nodes):
-        node_name = list(step.keys())[0]
-        if node_name == "write_query":
-            query = step[node_name].get("query")
-        if node_name == "execute_query":
-            data = step[node_name].get("raw_result")
-        if node_name != "__interrupt__":
-            step_state = step[node_name]
-            branch = step_state.get("branch")
-            if websocket:
-                next_step = give_correct_step(node_name, step_state)
-                await websocket.send_json({"type": "step", "node": next_step})
-                await asyncio.sleep(0)
+    try:
+        async for step in graph.astream(state, config, stream_mode="updates", interrupt_after=interrupt_nodes):
+            node_name = list(step.keys())[0]
+            if node_name == "write_query":
+                query = step[node_name].get("query")
+            if node_name == "execute_query":
+                data = step[node_name].get("raw_result")
+            if node_name != "__interrupt__":
+                step_state = step[node_name]
+                branch = step_state.get("branch")
+                if websocket:
+                    next_step = give_correct_step(node_name, step_state)
+                    await websocket.send_json({"type": "step", "node": next_step})
+                    await asyncio.sleep(0)
+    except Exception as e:
+        logging.error(f"[run_chat] Failed for chat_id={chat_id}: {e}")
+        await websocket.send_json({
+            "type": "error",
+            "message": str(e)
+        })
+        return {"error": "resume failed"}
 
     answer = state['messages'][-1]
     final_msg = {"id": answer.id,
@@ -302,15 +304,18 @@ async def run_chat(question: str,
                  "additional_kwargs": answer.additional_kwargs
                  }
     if branch != "general_qa" and (not auto_approve or not auto_sql):
-        if websocket:
-            await websocket.send_json({
-                "type": "interruption",
-                "reason": {"auto_sql": auto_sql, "auto_approve": auto_approve},
-                "query": query,
-                "data": data,
-                "chat_id": chat_id
-            })
-            return {}
+        if len(data) > 0:
+            if websocket:
+                await websocket.send_json({
+                    "type": "interruption",
+                    "reason": {"auto_sql": auto_sql, "auto_approve": auto_approve},
+                    "query": query,
+                    "data": data,
+                    "chat_id": chat_id
+                })
+                return {}
+        else:
+            await resume_stream(chat_id, [], websocket)
 
     return final_msg
 
@@ -345,7 +350,11 @@ async def resume_stream(chat_id: str, data, websocket) -> Dict:
                 }
         await websocket.send_json(final_msg)
     except Exception as e:
-        logging.error(f"[resume_stream] Failed for chat_id={chat_id}: {e}")
+        logging.error(f"[resume_stream (approval)] Failed for chat_id={chat_id}: {e}")
+        await websocket.send_json({
+            "type": "error",
+            "message": str(e)
+        })
         return {"error": "resume failed"}
 
 
@@ -375,7 +384,11 @@ async def update_sql_data(chat_id: str, query, data, websocket):
                 }
         await websocket.send_json(final_msg)
     except Exception as e:
-        logging.error(f"[resume_stream] Failed for chat_id={chat_id}: {e}")
+        logging.error(f"[resume_stream (sql)] Failed for chat_id={chat_id}: {e}")
+        await websocket.send_json({
+            "type": "error",
+            "message": str(e)
+        })
         return {"error": "resume failed"}
 
 
@@ -444,10 +457,12 @@ async def rename_chat(chat_id: str, new_title: str):
 
 
 async def store_feedback(chat_id, msg_id, data_correct, question_answered, comment):
-    config: RunnableConfig = {"configurable": {"thread_id": chat_id}}
+    config: RunnableConfig = {"configurable": {"thread_id": chat_id}, "run_id": msg_id}
     try:
         snapshot = await graph.aget_state(config)
         messages = snapshot.values.get("messages", [])
+        question = snapshot.values.get("original_question", "")
+        print(question)
     except Exception:
         return {"error": "Chat not found"}
 
@@ -474,14 +489,15 @@ async def store_feedback(chat_id, msg_id, data_correct, question_answered, comme
 
     cursor.execute("""
             INSERT INTO feedback (
-                id, thread_id, message_id, message_content,
+                id, thread_id, message_id, question, message_content,
                 data_correct, question_answered, comment, created_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
         feedback_id,
         chat_id,
         msg_id,
+        question,
         content,
         data_correct,
         question_answered,

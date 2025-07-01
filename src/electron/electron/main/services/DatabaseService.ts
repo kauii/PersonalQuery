@@ -12,6 +12,8 @@ import { WorkDayEntity } from '../entities/WorkDayEntity';
 import { SessionEntity } from '../entities/SessionEntity';
 import fs from 'node:fs';
 import CoverageScore from '../../../shared/CoverageScore';
+import { addWindowActivityDurations, updateSessionsFromUsageData } from './dbMigration';
+import Database from 'better-sqlite3';
 
 const LOG = getMainLogger('DatabaseService');
 
@@ -43,7 +45,7 @@ export class DatabaseService {
     let options: DataSourceOptions = {
       type: 'better-sqlite3',
       database: this.dbPath,
-      synchronize: true,
+      synchronize: false,
       logging: false,
       entities: entities
     };
@@ -100,7 +102,9 @@ export class DatabaseService {
     if (response.response === 0) {
       fs.copyFileSync(sourcePath, targetPath);
       LOG.info('Old PersonalAnalytics database copied into PersonalQuery');
-      await this.runDataInit();
+      const db = new Database(targetPath);
+      updateSessionsFromUsageData(db);
+      addWindowActivityDurations(db);
     } else {
       LOG.info('User declined database import');
     }

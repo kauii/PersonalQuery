@@ -12,6 +12,7 @@ import SQLReviewBox from '../components/SQLReviewBox.vue';
 import typedIpcRenderer from '../utils/typedIpcRenderer';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
+import { data } from 'autoprefixer';
 
 const route = useRoute();
 const chatId = ref(route.params.chatId as string);
@@ -98,7 +99,7 @@ const currentMeta = ref<Meta>({
 });
 const bottomAnchor = ref<HTMLElement | null>(null);
 const autoApprove = ref(false);
-const autoSQL = ref(false);
+const autoSQL = ref(true);
 const answerDetail = ref('auto');
 const wantsPlot = ref('auto');
 const topK = ref(150);
@@ -120,6 +121,7 @@ const handleNewChatGreeting = () => {
   if (wsMessages.value.length === 0) {
     greetingDisplayed.value = true;
     fullGreeting.value = mainGreetings[Math.floor(Math.random() * mainGreetings.length)];
+    randomSuggestedQuestions.value = suggestedQuestions.sort(() => Math.random() - 0.5).slice(0, 3);
     simulateGreetingStream(fullGreeting.value);
   }
 };
@@ -161,7 +163,6 @@ async function fetchChatHistory() {
 
 onMounted(() => {
   connect();
-  handleNewChatGreeting();
   fetchChatHistory();
   window.addEventListener('newChatCreated', handleNewChatGreeting);
 });
@@ -211,7 +212,7 @@ watch(interruptionMeta, () => {
     needsSQLReview.value = !interruptionMeta.value.reason.auto_sql;
     reviewMeta.value = {
       chat_id: interruptionMeta.value.chat_id,
-      data: interruptionMeta.value.data,
+      data: JSON.parse(JSON.stringify(interruptionMeta.value.data)),
       query: interruptionMeta.value.query
     };
     console.log('reviewMeta.value', reviewMeta.value);
@@ -420,6 +421,13 @@ function resetQuery() {
     reviewMeta.value.query = interruptionMeta.value!.query;
   }
 }
+function resetData() {
+  console.log('resetting:', reviewMeta.value?.data);
+  console.log('with:', interruptionMeta.value?.data);
+  if (reviewMeta.value) {
+    reviewMeta.value.data = interruptionMeta.value!.data;
+  }
+}
 
 async function handleLLMCorrection(instruction: string, query: string) {
   if (!interruptionMeta.value) return;
@@ -488,10 +496,24 @@ const selectedDate = ref<Date | [Date, Date] | null>(null);
 const coverageScores = ref<Record<string, number>>({});
 
 const suggestedQuestions = [
-  'Show me where I spent the most time',
-  'Analyze my typing activity',
-  'Compare my focus between categories'
+  'How many times do I switch between apps?',
+  'How much time do I spend coding?',
+  'How much time do I spend in the browser?',
+  'Which activities do I spend the most time on?',
+  'On which day of the week do I code the most?',
+  'Which activities are associated with high mouse activity?',
+  'How does my perceived productivity compare across different activities?',
+  'How often do I switch from work to non-work activities?',
+  'How has my productivity changed?',
+  'Which activities have the longest total focus time?',
+  'What patterns exist in my typing activity?',
+  'Which applications do I type in the most?',
+  'Which activities generate the most user input?',
+  'How does my input relate to my self-perceived productivity ratings?',
+  'How does time spent on activities relate to feeling productive?'
 ];
+
+const randomSuggestedQuestions = ref<string[]>([]);
 
 function onSelectQuestion(q: string) {
   selectedQuestion.value = q;
@@ -508,7 +530,7 @@ function getDayClass(date: Date) {
 }
 
 function onConfirmSelection() {
-  let dateString = "";
+  let dateString = '';
 
   if (Array.isArray(selectedDate.value)) {
     const [start, end] = selectedDate.value;
@@ -517,12 +539,12 @@ function onConfirmSelection() {
     } else if (start) {
       dateString = formatDate(start);
     } else {
-      dateString = "No date selected";
+      dateString = 'No date selected';
     }
   } else if (selectedDate.value instanceof Date) {
     dateString = formatDate(selectedDate.value);
   } else {
-    dateString = "No date selected";
+    dateString = 'No date selected';
   }
 
   input.value = `${selectedQuestion.value}, ${dateString}`;
@@ -531,12 +553,11 @@ function onConfirmSelection() {
 
 function formatDate(d: unknown): string {
   if (d instanceof Date) {
-    const parts = d.toDateString().split(" ");
+    const parts = d.toDateString().split(' ');
     return `${parts[1]} ${parts[2]} ${parts[3]}`;
   }
-  return "Invalid date";
+  return 'Invalid date';
 }
-
 
 onMounted(async () => {
   const data = await typedIpcRenderer.invoke('getDataCoverageScore');
@@ -547,7 +568,7 @@ onMounted(async () => {
 
 <template>
   <div class="flex h-screen flex-col bg-base-100 p-4">
-    <div class="scrollable flex flex-col flex-1 overflow-y-auto space-y-4 pr-1">
+    <div class="scrollable flex flex-1 flex-col space-y-4 overflow-y-auto pr-1">
       <div
         v-if="greetingDisplayed"
         class="flex flex-grow items-center justify-center px-4 text-center"
@@ -562,14 +583,11 @@ onMounted(async () => {
       >
         <h3 class="mb-4 text-lg font-semibold">Quick Start</h3>
         <ul class="flex flex-wrap gap-10">
-          <li v-for="q in suggestedQuestions" :key="q">
+          <li v-for="q in randomSuggestedQuestions" :key="q">
             <button
               :key="q"
+              :class="['btn', selectedQuestion === q ? 'btn-primary' : 'btn-outline']"
               @click="onSelectQuestion(q)"
-              :class="[
-    'btn',
-    selectedQuestion === q ? 'btn-primary' : 'btn-outline'
-  ]"
             >
               {{ q }}
             </button>
@@ -595,6 +613,16 @@ onMounted(async () => {
               {{ steps[steps.length - 1].replaceAll('_', ' ') }}
             </p>
           </div>
+        </div>
+        <!-- Error message -->
+        <div
+          v-else-if="msg.role === 'system' && msg.error"
+          class="mb-4 flex w-full justify-center px-4"
+        >
+          <div
+            class="prose mx-auto w-full max-w-4xl rounded-lg border border-white/10 px-6 py-5 text-left leading-tight text-base-content text-error"
+            v-html="msg.content"
+          />
         </div>
         <!-- AI message -->
         <div v-else-if="msg.role === 'ai'" class="mb-4 flex w-full justify-center px-4">
@@ -764,9 +792,10 @@ onMounted(async () => {
           />
           <ApprovalRequestBox
             v-if="needsApproval && !needsSQLReview && index === wsMessages.length - 1"
-            :data="reviewMeta?.data"
+            :data="reviewMeta?.data ?? []"
             @approve="respondToApproval"
             @cell-edit-complete="onCellEditComplete"
+            @reset="resetData"
           />
         </div>
       </div>
@@ -1036,32 +1065,26 @@ onMounted(async () => {
     <dialog
       v-if="showDatePicker"
       class="modal modal-open"
-      @click.self="() => showDatePicker = false"
+      @click.self="() => (showDatePicker = false)"
     >
       <div
-        class="modal-box p-6 flex flex-col justify-between"
-        style="height: 600px; max-width: 32rem;"
+        class="modal-box flex flex-col justify-between p-6"
+        style="height: 600px; max-width: 32rem"
       >
         <div>
           <!-- Modal Title -->
-          <h2 class="text-lg font-semibold mb-2">
-            Select a Time Scope for the question:
-          </h2>
-          <p class="mb-2">
-            '{{ selectedQuestion }}'
-          </p>
+          <h2 class="mb-2 text-lg font-semibold">Select a Time Scope for the question:</h2>
+          <p class="mb-2">'{{ selectedQuestion }}'</p>
 
           <div class="mt-6">
-            <label class="block text-sm font-semibold mb-1">
-              Data Richness
-            </label>
+            <label class="mb-1 block text-sm font-semibold"> Data Richness </label>
             <!-- Gradient bar -->
             <div
-              class="w-full h-4 rounded"
-              style="background: linear-gradient(to right, white, #22c55e);"
+              class="h-4 w-full rounded"
+              style="background: linear-gradient(to right, white, #22c55e)"
             ></div>
             <!-- Labels -->
-            <div class="flex justify-between text-xs text-gray-600 mt-1">
+            <div class="mt-1 flex justify-between text-xs text-gray-600">
               <span>No Data</span>
               <span>High Coverage</span>
             </div>
@@ -1074,26 +1097,18 @@ onMounted(async () => {
             :day-class="getDayClass"
             :enable-time-picker="false"
             range
-            class="w-full flex-grow mt-2 mb-6"
+            class="mb-6 mt-2 w-full flex-grow"
           />
         </div>
 
         <!-- Confirm Button fixed at the bottom -->
         <div class="mt-4 text-right">
-          <button
-            v-if="selectedDate"
-            @click="onConfirmSelection"
-            class="btn btn-primary"
-          >
+          <button :disabled="!selectedDate" class="btn btn-primary" @click="onConfirmSelection">
             Confirm
           </button>
         </div>
       </div>
     </dialog>
-
-
-
-
 
     <!-- Plot Modal -->
     <dialog v-if="showImageModal" class="modal modal-open" @click.self="closeImageModal">
@@ -1273,6 +1288,4 @@ input[type='number'] {
   border-radius: 4px;
   color: inherit;
 }
-
-
 </style>

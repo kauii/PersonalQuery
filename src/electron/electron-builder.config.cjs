@@ -25,13 +25,16 @@ module.exports = {
   extraResources: [
     {
       from: `../py-backend/dist/${backendFile}`,
-      to: backendFile,
-      filter: ['**/*']
+      to: backendFile
+    },
+    {
+      from: `../py-backend/dist/.env`,
+      to: '.env'
     }
   ],
   publish: {
     provider: 'github',
-    owner: 'kauii',
+    owner: 'HASEL-UZH',
     repo: 'PersonalQuery'
   },
   afterSign: 'scripts/notarize.cjs',
@@ -63,13 +66,7 @@ module.exports = {
   win: {
     target: ['nsis'],
     verifyUpdateCodeSignature: false,
-    artifactName: '${productName}-${version}-Windows.${ext}',
-    azureSignOptions: {
-      publisherName: `${process.env.AZURE_PUBLISHER_NAME}`,
-      endpoint: `${process.env.AZURE_ENDPOINT}`,
-      codeSigningAccountName: `${process.env.AZURE_CODE_SIGNING_NAME}`,
-      certificateProfileName: `${process.env.AZURE_CERT_PROFILE_NAME}`
-    }
+    artifactName: '${productName}-${version}-Windows.${ext}'
   },
   nsis: {
     oneClick: true,

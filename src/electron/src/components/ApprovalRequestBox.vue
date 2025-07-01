@@ -5,14 +5,48 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
 
-const props = defineProps({
-  data: {
-    type: Array,
-    default: () => []
-  }
-});
+interface DataRow {
+  [key: string]: any;
+}
+
+const props = defineProps<{
+  data: DataRow[];
+}>();
 
 const globalSearch = ref('');
+const searchTerms = ref('');
+
+function escapeRegExp(string: string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function handleObfuscate() {
+  const terms = searchTerms.value
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  if (!terms.length) return;
+
+  props.data.forEach((row) => {
+    for (const key in row) {
+      const cell = row[key];
+      if (typeof cell === 'string') {
+        let obfuscated = cell;
+        terms.forEach((term) => {
+          const escaped = escapeRegExp(term);
+          const regex = new RegExp(escaped, 'gi');
+          // Replace with your desired replacement text
+          obfuscated = obfuscated.replace(regex, '[anonymized]');
+        });
+        row[key] = obfuscated;
+      }
+    }
+  });
+
+  // Clear input
+  searchTerms.value = '';
+}
 
 watch(globalSearch, (newVal) => {
   filters.value.global.value = newVal;
@@ -68,15 +102,31 @@ function tableBodyCell({ state }: { state: Record<string, any> }) {
         }"
       >
         <template #header>
-          <div class="custom-datatable-header flex items-center justify-between gap-4 pr-0">
-            <span class="ml-auto">
-              <input
-                v-model="globalSearch"
-                type="text"
-                placeholder="Search for values..."
-                class="input input-sm input-bordered w-full max-w-xs"
-              />
-            </span>
+          <div class="custom-datatable-header flex flex-wrap items-end justify-between gap-4 pr-0">
+            <!-- Global Search on the left -->
+            <input
+              v-model="globalSearch"
+              type="text"
+              placeholder="Search for values..."
+              class="input input-sm input-bordered w-full max-w-xs"
+            />
+
+            <!-- Grouped controls on the right -->
+            <div class="flex items-end gap-2">
+              <button @click="$emit('reset')" class="btn btn-outline btn-sm">Reset</button>
+
+              <label class="flex w-64 flex-col">
+                <span class="label-text mb-0.5 text-xs">Terms to obfuscate</span>
+                <input
+                  v-model="searchTerms"
+                  type="text"
+                  placeholder="e.g., John, Email, Secret"
+                  class="input input-sm input-bordered"
+                />
+              </label>
+
+              <button @click="handleObfuscate" class="btn btn-primary btn-sm">Obfuscate</button>
+            </div>
           </div>
         </template>
 

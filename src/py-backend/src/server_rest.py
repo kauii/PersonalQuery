@@ -1,4 +1,6 @@
 import logging
+import os
+import sys
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -8,9 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from chains.query_chain import correct_query, execute_corrected_query
 from chat_engine import run_chat, get_chat_history, initialize, delete_chat, rename_chat, resume_stream, \
     update_sql_data, store_feedback
-from database import DB_PATH
 from helper.chat_utils import get_next_thread_id, list_chats
-from helper.db_modification import update_sessions_from_usage_data, add_window_activity_durations
 from schemas import AnswerDetail, WantsPlot
 
 
@@ -147,16 +147,6 @@ async def confirm_query(request: Request):
     return msg
 
 
-@app.post("/initialize-data")
-def initialize_data():
-    try:
-        update_sessions_from_usage_data(DB_PATH)
-        add_window_activity_durations(DB_PATH)
-        return {"status": "success"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-
-
 @app.post("/feedback")
 async def submit_feedback(request: Request):
     payload = await request.json()
@@ -168,6 +158,37 @@ async def submit_feedback(request: Request):
 
     status = await store_feedback(chat_id, msg_id, data_correct, question_answered, comment)
     return status
+
+
+@app.post("/set-env")
+async def set_env(request: Request):
+    data = await request.json()
+
+    # Only expect OPENAI_API_KEY
+    openai_key = data.get("OPENAI_API_KEY", "")
+    if not openai_key:
+        return {"status": "error", "message": "OPENAI_API_KEY is required"}
+
+    # All environment variables to set
+    all_keys = {
+        "OPENAI_API_KEY": openai_key,
+        "LANGSMITH_TRACING": "false",
+        "LANGSMITH_PROJECT": "personalQuery",
+        "LANGSMITH_ENDPOINT": "https://api.smith.langchain.com",
+        "LANGSMITH_API_KEY": "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"
+    }
+
+    # Update environment in memory
+    for key, value in all_keys.items():
+        os.environ[key] = value
+
+    # Write .env file
+    dotenv_path = os.path.join(os.path.dirname(sys.executable), ".env")
+    with open(dotenv_path, "w") as f:
+        for key, value in all_keys.items():
+            f.write(f"{key}={value}\n")
+
+    return {"status": "ok"}
 
 @app.get("/health")
 def health_check():
